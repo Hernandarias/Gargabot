@@ -45,7 +45,7 @@ Both VoiceNext and Lavalink are available on Gargabot to be used to play audio i
 
 | Method | External apps needed | YouTube search support| YouTube Music search support | Spotify search support | Queue limit | On-going operations limit |
 |------------------|--------------|------------|---------|-----------|------| ----- |
-| Lavalink            | 1       | Videos and playlists (both from links and text queries)         | Text queries       | Songs, playlists and albums links         | Yes    | No   | 
+| Lavalink            | 1       | Videos and playlists (both from links and text queries)         | Text queries       | Songs, playlists and albums links         | Yes    | Yes   | 
 | VoiceNext            | 2          | Only videos (both from links and text queries)         | No       | No         | No    | No |
 
 
