@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DSharpPlus" Version="5.0.0-nightly-02194" />
+    <PackageReference Include="DSharpPlus.CommandsNext" Version="5.0.0-nightly-02152" />
+    <PackageReference Include="DSharpPlus.Interactivity" Version="5.0.0-nightly-02152" />
+    <PackageReference Include="DSharpPlus.Lavalink" Version="4.4.6" />
+    <PackageReference Include="DSharpPlus.Rest" Version="5.0.0-nightly-02152" />
+    <PackageReference Include="DSharpPlus.SlashCommands" Version="5.0.0-nightly-02152" />
+    <PackageReference Include="DSharpPlus.VoiceNext" Version="5.0.0-nightly-02152" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.11.60" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.0-preview.2.24128.5" />
+    <PackageReference Include="YoutubeExplode" Version="6.3.13" />
+  </ItemGroup>
+
+</Project>

@@ -18,7 +18,7 @@ Gargabot is a music playing bot for Discord servers built using DSharpPlus in .N
 ## Commands (the prefix is customizable)
 
 ```
-g!play <[!music]> <search>: Search and play a track. Use [!music] before the search query to specify searching from YouTube Music. If nothing specified, it searches from YouTube. If the query is a link, it can be a YouTube link (video or playlist) or a Spotify link (song, album, or playlist). Any other links will be handled by Lavaplayer if chosen as the playback method.
+g!play <[!music]> <search>: Search and play a track. Use [!music] before the search query to specify searching on YouTube Music. If nothing specified, it searches on YouTube. If the query is a link, it can be a YouTube link (video or playlist) or a Spotify link (song, album, or playlist). Any other links will be handled by Lavaplayer if chosen as the playback method.
 g!pause: Pause the current playback.
 g!resume: Resume playback.
 g!skip: Skip the current song.
@@ -148,7 +148,7 @@ This is done entirely by using the [DSharpPlus](https://github.com/DSharpPlus/DS
 
 There are two ways of playing audio on Gargabot:
 
-- VoiceNext `(deprecated)`: This uses the [DSharpPlus.VoiceNext](https://www.nuget.org/packages/DSharpPlus.VoiceNext/) package for playing audio in a voice channel. It requires an external app [(ffmpeg)](https://ffmpeg.org/download.html) to actually play the audio and another app to get working streaming links [(yt-dlp)](https://github.com/yt-dlp/yt-dlp/releases). This approach is pretty complicated to mantain and, therefore, won't be getting any fixes or updates.
+- VoiceNext `(deprecated)`: This uses the [DSharpPlus.VoiceNext](https://www.nuget.org/packages/DSharpPlus.VoiceNext/) package for playing audio in a voice channel. It requires an external app [(ffmpeg)](https://ffmpeg.org/download.html) to actually play the audio and another app to get working streaming links [(yt-dlp)](https://github.com/yt-dlp/yt-dlp/releases). This approach is pretty complicated to maintain and, therefore, won't be getting any fixes or updates.
 
 - Lavalink: This uses the [DSharpPlus.Lavalink](https://www.nuget.org/packages/DSharpPlus.Lavalink/) package for connecting to Lavalink from .NET. Although this package is now deprecated it stills does the job since Lavalink is only used to play audio and nothing else (unless `soundcloud` is chosen as the search engine which, as previously stated, won't be getting any support as it relies entirely on Lavaplayer's implementation of it).
 
@@ -157,7 +157,7 @@ There are two ways of playing audio on Gargabot:
 When the `g!play` command is triggered by an user Gargabot checks whether the specified query is a url or plain text.
 
 - If the query is plain text and the `[!music]` clause wasn't used then a search in YouTube is executed using the [YoutubeExplode](https://github.com/Tyrrrz/YoutubeExplode) package. The first result is the one getting played.
-- If the query is plain text and the `[!music]` clause was used then we search that track in YouTube Music using reverse engineering to get as close as we can to the user's request. Note that this assumes the track exists in YouTube Music as a song and not as a music or lyrics video; also, there's no guarantee that the gotten result is a perfect match to the user's requst.
+- If the query is plain text and the `[!music]` clause was used then Gargabot searches that track in YouTube Music using reverse engineering to get as close as possible to the user's request. Note that this assumes the track exists in YouTube Music as a song and not only as a music or lyrics video; also, there's no guarantee that the gotten result is a perfect match to the user's request.
 - If the query is a YouTube video or playlist url then [YoutubeExplode](https://github.com/Tyrrrz/YoutubeExplode) is used to handle those requests.
 - If the query is a Spotify song, playlist or album url then the [Spotify's public API](https://developer.spotify.com/documentation/web-api) is consumed to get each track information. Once that information was retrieved then Gargabot searches that track using the YouTube Music search module.
 
