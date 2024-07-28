@@ -10,11 +10,14 @@ namespace Gargabot.Utils.LavalinkUtilities
     public class NewLavalinkTrack
     {
         private string finalTitle;
+        private string fullTitle;
         private string url;
         private string thumbnailUrl;
         private LavalinkTrack track;
         private string duration;
         private LavalinkNodeConnection node;
+        private string spotifyTrackId;
+        private List<string> spotifyArtistsIds;
         public NewLavalinkTrack(string finalTitle, string url, string thumbnailUrl, string duration, LavalinkTrack track, LavalinkNodeConnection node)
         {
             this.finalTitle = finalTitle;
@@ -24,11 +27,27 @@ namespace Gargabot.Utils.LavalinkUtilities
             this.duration = duration;
             this.node = node;
         }
+
+        public NewLavalinkTrack(NewLavalinkTrack track)
+        {
+            this.finalTitle = track.FinalTitle;
+            this.url = track.Url;
+            this.track = track.Track;
+            this.thumbnailUrl = track.ThumbnailUrl;
+            this.duration = track.Duration;
+            this.node = track.Node;
+            this.fullTitle = track.FullTitle;
+            this.spotifyTrackId = track.SpotifyTrackId;
+            this.spotifyArtistsIds = track.SpotifyArtistsIds;
+        }   
         public string FinalTitle { get => finalTitle; set => finalTitle = value; }
         public string Url { get => url; set => url = value; }
         public LavalinkTrack Track { get => track; set => track = value; }
         public string ThumbnailUrl { get => thumbnailUrl; set => thumbnailUrl = value; }
         public string Duration { get => duration; set => duration = value; }
         public LavalinkNodeConnection Node { get => node; set => node = value; }
+        public string FullTitle { get => fullTitle; set => fullTitle = value; }
+        public string SpotifyTrackId { get => spotifyTrackId; set => spotifyTrackId = value; }
+        public List<string> SpotifyArtistsIds { get => spotifyArtistsIds; set => spotifyArtistsIds = value; }
     }
 }

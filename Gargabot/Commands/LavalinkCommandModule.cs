@@ -1,4 +1,6 @@
-﻿using DSharpPlus.CommandsNext;
+﻿using AngleSharp.Css;
+using AngleSharp.Dom;
+using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
 using DSharpPlus.Lavalink;
@@ -59,6 +61,11 @@ namespace Gargabot.Commands
                     await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("QUEUE_LIMIT_REACHED")));
                     return;
                 }
+                else if (perServerSession[serverId].RadioMode || perServerSession[serverId].ArtistRadioMode)
+                {
+                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("RADIO_MODE_IS_ENABLED")));
+                    return;
+                }
 
                 bool firstJoin = false;
                 bool validJoinAudio = false;
@@ -84,10 +91,35 @@ namespace Gargabot.Commands
                     search = search.Remove(0, 8);
                     isMusic = true;
                 }
+                else if (search.StartsWith("[!artistradio]") && firstJoin)
+                {
+                    if(!isSpotifyEnabled())
+                    {
+                        await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("NO_SPOTIFY_CREDENTIALS")));
+                        return;
+                    }
+                    search = search.Remove(0, 14);  
+                    //Get artist ID and random track of that artist
+                    Tuple<string, string> artistIdAndTrack = await LavalinkController.getArtistIdAndTrackFromName(search);
+                    if (artistIdAndTrack.Item1 != null && artistIdAndTrack.Item2 != null)
+                    {
+                        perServerSession[serverId].ArtistRadioArtistId = artistIdAndTrack.Item1;
+                        search = artistIdAndTrack.Item2;
+                        perServerSession[serverId].ArtistRadioMode = true;
+                        perServerSession[serverId].CurrentRadioHistory = new Dictionary<string, bool>();
+                    }
+                    else
+                    {
+                        await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("ARTIST_NOT_FOUND")));
+                        return;
+                    }
+                }
+                
+
 
                 perServerSession[serverId].HeavyOperationOngoing = true;
 
-                var tuple = await LavalinkUtils.loadLavalinkTrack(node, search, isMusic, perServerSession[serverId].Queue.Count);
+                var tuple = await LavalinkController.loadLavalinkTrack(node, search, isMusic, perServerSession[serverId].Queue.Count);
 
                 perServerSession[serverId].HeavyOperationOngoing = false;
 
@@ -128,7 +160,7 @@ namespace Gargabot.Commands
 
                     search = botParams.joinAudiosList[index];
 
-                    var joinTuple = await LavalinkUtils.loadLavalinkTrack(node, search, false, 0);
+                    var joinTuple = await LavalinkController.loadLavalinkTrack(node, search, false, 0);
                     List<NewLavalinkTrack> joinNewLavalinkTrack = joinTuple.Item1;
 
                     if (joinNewLavalinkTrack != null)
@@ -182,23 +214,24 @@ namespace Gargabot.Commands
 
             if (!joinAudio)
             {
-                if (channel != null)
+                if (channel.Id!=0)
                 {
                     if(nlt.ThumbnailUrl=="")
                         await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(nlt.Url, nlt.FinalTitle, messageManager.GetMessage("PLAYING_ON", connection.Guild.Name), $"00:00:00 - {nlt.Duration}"));
                     else
                         await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(nlt.Url, nlt.FinalTitle, messageManager.GetMessage("PLAYING_ON", connection.Guild.Name), $"00:00:00 - {nlt.Duration}", nlt.ThumbnailUrl));
+                    NewLavalinkTrack nltCopy = new NewLavalinkTrack(nlt);
+                    perServerSession[serverId].LastTrackPlayed = nltCopy;
                 }        
             }
 
             perServerSession[serverId].IsPlayingJoinAudio = joinAudio;
 
-
+            //If nlt.track (lavalinkTrack) is null then I should load the LavaLink track using the Youtube audio URL
             if (nlt.Track == null)
             {
-                //If nlt.track (lavalinkTrack) is null then I should load the LavaLink track using the Youtube audio URL
-                string realAudioURL = await YoutubeUtils.getAudioRealUrl(nlt.Url);
-                nlt.Track=await LavalinkUtils.loadLavalinkTrack(realAudioURL, nlt.Node, LavalinkSearchType.Plain);
+                string realAudioURL = await YoutubeController.getAudioRealUrl(nlt.Url);
+                nlt.Track=await LavalinkController.loadLavalinkTrack(realAudioURL, nlt.Node, LavalinkSearchType.Plain);
             }
 
             await connection.PlayAsync(nlt.Track);
@@ -207,18 +240,57 @@ namespace Gargabot.Commands
 
         private async Task OnPlaybackFinished(LavalinkGuildConnection connection, TrackFinishEventArgs e)
         {
-
             ulong serverId = connection.Guild.Id;
             perServerSession[serverId].IsPlayingJoinAudio = false;
             if (perServerSession[serverId].Queue.Count > 0)
             {
                 await PlayNextTrack(connection, serverId, perServerSession[serverId].CallerTextChannelId, false);
             }
-            else
+            else if (perServerSession[serverId].RadioMode || perServerSession[serverId].ArtistRadioMode)
+            {
+                NewLavalinkTrack nlt;
+                Tuple<string, List<string>, bool> trackIdentifier; //Item1: trackIdOrName, Item2: artistList, Item3: isSpotifyDataComplete
+                Tuple<NewLavalinkTrack, string> result = new Tuple<NewLavalinkTrack, string>(null, null);
+                if (perServerSession[serverId].RadioMode)
+                {
+                    
+                    if (!string.IsNullOrEmpty(perServerSession[serverId].LastTrackPlayed.SpotifyTrackId) && perServerSession[serverId].LastTrackPlayed.SpotifyArtistsIds.Count > 0)
+                    {
+                        trackIdentifier = new Tuple<string, List<string>, bool>(perServerSession[serverId].LastTrackPlayed.SpotifyTrackId, perServerSession[serverId].LastTrackPlayed.SpotifyArtistsIds, true);
+                    }
+                    else
+                    {
+                        if (string.IsNullOrEmpty(perServerSession[serverId].LastTrackPlayed.FullTitle))
+                            trackIdentifier = new Tuple<string, List<string>, bool>(perServerSession[serverId].LastTrackPlayed.FinalTitle, new List<string>(), false);
+                        else
+                            trackIdentifier = new Tuple<string, List<string>, bool>(perServerSession[serverId].LastTrackPlayed.FullTitle, new List<string>(), false);
+                    }
+                    result = await LavalinkController.getNextRadioTrack(perServerSession[serverId].LastTrackPlayed.Node, false, trackIdentifier, perServerSession[serverId].CurrentRadioHistory);
+
+                    
+                }
+                else if (perServerSession[serverId].ArtistRadioMode)
+                {
+                    trackIdentifier = new Tuple<string, List<string>, bool>(perServerSession[serverId].LastTrackPlayed.SpotifyTrackId, new List<string> { perServerSession[serverId].ArtistRadioArtistId }, true);
+                    result = await LavalinkController.getNextRadioTrack(perServerSession[serverId].LastTrackPlayed.Node, true, trackIdentifier, perServerSession[serverId].CurrentRadioHistory);
+                }
+
+
+                if (result != null && result.Item1 != null)
+                {
+                    perServerSession[serverId].Queue.AddLast(result.Item1);
+                    perServerSession[serverId].CurrentRadioHistory.Add(result.Item1.SpotifyTrackId, true);
+                    if (!perServerSession[serverId].CurrentRadioHistory.ContainsKey(result.Item2))
+                    {
+                        perServerSession[serverId].CurrentRadioHistory.Add(result.Item2, true);
+                    }
+                    await PlayNextTrack(connection, serverId, perServerSession[serverId].CallerTextChannelId, false);
+                }
+            }
+            else if (!perServerSession[serverId].HeavyOperationOngoing)
             {
                 await connection.DisconnectAsync();
             }
-
         }
 
 
@@ -260,6 +332,71 @@ namespace Gargabot.Commands
 
                 await connection.PauseAsync();
                 await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("PAUSED")));
+            }
+        }
+        
+
+        [Command("radio")]
+        public async Task SwitchRadioCommand(CommandContext ctx)
+        {
+            if (AreBotAndCallerInTheSameChannel(ctx))
+            {
+                var ll = ctx.Client.GetLavalink();
+
+                if (!ll.ConnectedNodes.Any())
+                {
+                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("GET_LAVALINK_CONNECTION_ERROR")));
+                    return;
+                }
+
+                var node = ll.ConnectedNodes.Values.First();
+                var connection = node.GetGuildConnection(ctx.Member.VoiceState.Guild);
+                ulong channelId = ctx.Channel.Id;
+                DiscordChannel channel = connection.Guild.GetChannel(channelId);
+
+                ulong serverId = ctx.Guild.Id;
+
+                if (connection == null)
+                {
+                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("GET_LAVALINK_CONNECTION_ERROR")));
+                    return;
+                }
+
+                if(!isSpotifyEnabled())
+                {
+                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("NO_SPOTIFY_CREDENTIALS")));
+                    return;
+                }
+
+                if (perServerSession[serverId].RadioMode)
+                {
+                    perServerSession[serverId].CurrentRadioHistory.Clear();
+                    perServerSession[serverId].RadioMode = false;
+                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("RADIO_MODE_DISABLED")));
+                    return;
+                }
+
+                if (connection.CurrentState.CurrentTrack == null)
+                {
+                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("NO_AUDIO_PLAYING")));
+                    return;
+                }
+
+                if (perServerSession[serverId].Queue.Count > 0)
+                {
+                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("QUEUE_MUST_BE_EMPTY_FOR_RADIO_MODE")));
+                    return;
+                }
+
+                if (perServerSession[serverId].ArtistRadioMode)
+                {
+                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("ARTIST_RADIO_MODE_ENABLED")));
+                    return;
+                }
+
+                perServerSession[serverId].RadioMode = true;
+                perServerSession[serverId].CurrentRadioHistory = new Dictionary<string, bool>();
+                await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("RADIO_MODE_ENABLED")));
             }
         }
 
@@ -502,6 +639,8 @@ namespace Gargabot.Commands
                 DiscordChannel channel = connection.Guild.GetChannel(channelId);
 
                 perServerSession[serverId].Queue.Clear();
+                perServerSession[serverId].RadioMode = false;
+                perServerSession[serverId].ArtistRadioMode = false;
                 perServerSession.Remove(serverId);
 
                 await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("STOPPED")));

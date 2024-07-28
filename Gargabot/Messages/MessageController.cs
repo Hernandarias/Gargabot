@@ -8,11 +8,11 @@ using System.Threading.Tasks;
 
 namespace Gargabot.Messages
 {
-    public class MessageManager
+    public class MessageController
     {
         private Dictionary<string, string> messages;
 
-        public MessageManager(string filePath)
+        public MessageController(string filePath)
         {
             if (!File.Exists(filePath))
                 throw new MessagesFileNotFound();

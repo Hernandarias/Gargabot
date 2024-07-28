@@ -12,7 +12,7 @@ using AngleSharp.Common;
 
 namespace Gargabot.Utils.Youtube
 {
-    public static class YoutubeUtils
+    public static class YoutubeController
     {
         public static async Task<YoutubeVideo> getVideoInfo(string url)
         {

@@ -28,7 +28,14 @@ namespace Gargabot.Messages
             "CLEARED",
             "HELP",
             "HEAVY_OPERATION_ONGOING",
-            "QUEUE_LIMIT_REACHED"
+            "QUEUE_LIMIT_REACHED",
+            "QUEUE_MUST_BE_EMPTY_FOR_RADIO_MODE",
+            "RADIO_MODE_IS_ENABLED",
+            "RADIO_MODE_DISABLED",
+            "RADIO_MODE_ENABLED",
+            "NO_SPOTIFY_CREDENTIALS",
+            "ARTIST_RADIO_MODE_ENABLED",
+            "ARTIST_NOT_FOUND"
         ];
     }
 }

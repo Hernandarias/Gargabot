@@ -12,13 +12,15 @@ Gargabot is a music playing bot for Discord servers built using DSharpPlus in .N
 - Multi-server support
 - Search and queue management
 - Playback control
+- Radio mode with unlimited playback
+- Artist radio mode
 - Fully customizable parameters like the bot's prefix, playback method, etc
 - Fully customizable messages
 
 ## Commands (the prefix is customizable)
 
 ```
-g!play <[!music]> <search>: Search and play a track. Use [!music] before the search query to specify searching on YouTube Music. If nothing specified, it searches on YouTube. If the query is a link, it can be a YouTube link (video or playlist) or a Spotify link (song, album, or playlist). Any other links will be handled by Lavaplayer if chosen as the playback method.
+g!play <[!music] / [!artistradio]> <search>: Search and play a track. Use [!music] before the search query to specify searching on YouTube Music. If nothing specified, it searches on YouTube. If the query is a link, it can be a YouTube link (video or playlist) or a Spotify link (song, album, or playlist). Any other links will be handled by Lavaplayer if chosen as the playback method. Using [!artistradio] enables nonstop playback of the chosen artist.
 g!pause: Pause the current playback.
 g!resume: Resume playback.
 g!skip: Skip the current song.
@@ -27,6 +29,7 @@ g!queue: Show the playback queue.
 g!remove <index>: Remove an item from the queue.
 g!clear: Remove all items from the queue.
 g!shuffle: Shuffle the playback queue.
+g!radio: Enables radio mode (requires artist radio mode to not be active).
 g!help: Show the help message.
 ```
 
@@ -35,7 +38,7 @@ g!help: Show the help message.
 ### Requirements:
 
 - [.NET 8](https://dotnet.microsoft.com/es-es/download/dotnet/8.0)
-- Either [Lavalink 3.7.11](https://github.com/lavalink-devs/Lavalink/releases/tag/3.7.11) to use Lavalink as playback method or both [ffmpeg](https://ffmpeg.org/download.html) and [yt-dlp](https://github.com/yt-dlp/yt-dlp/releases) to use VoiceNext
+- Either [Lavalink 3.7.11](https://github.com/lavalink-devs/Lavalink/releases/tag/3.7.12) to use Lavalink as playback method or both [ffmpeg](https://ffmpeg.org/download.html) and [yt-dlp](https://github.com/yt-dlp/yt-dlp/releases) to use VoiceNext
 
 ### Choosing a playback method:
 
@@ -43,11 +46,10 @@ Both VoiceNext and Lavalink are available on Gargabot to be used to play audio i
 
 #### Comparison chart:
 
-| Method | External apps needed | YouTube search support| YouTube Music search support | Spotify search support | Queue limit | On-going operations limit |
-|------------------|--------------|------------|---------|-----------|------| ----- |
-| Lavalink            | 1       | Videos and playlists (both from links and text queries)         | Text queries       | Songs, playlists and albums links         | Yes    | Yes   | 
-| VoiceNext            | 2          | Only videos (both from links and text queries)         | No       | No         | No    | No |
-
+| Method | External apps needed | YouTube search support| YouTube Music search support | Spotify search support | Queue limit | On-going operations limit | Radio mode | Artist radio mode |
+|------------------|--------------|------------|---------|-----------|------| ----- | ----- | ----- |
+| Lavalink            | 1       | Videos and playlists (both from links and text queries)         | Text queries       | Songs, playlists and albums links         | Yes    | Yes   | Yes    | Yes   | 
+| VoiceNext            | 2          | Only videos (both from links and text queries)         | No       | No         | No    | No | No    | No |
 
 ### Configuration files:
 
@@ -100,9 +102,16 @@ Both VoiceNext and Lavalink are available on Gargabot to be used to play audio i
   "SHUFFLED": "✅ Queue shuffled.",
   "MULTIPLE_TRACKS_ADDED_TO_QUEUE": "✅ {0} tracks added to the queue.",
   "CLEARED": "✅ Queue cleared.",
-  "HELP": "**List of commands:**\n\n{0}play <[!music]> <search> - Search and play a song.\n{0}pause - Pause the current playback.\n{0}resume - Resume playback.\n{0}skip - Skip the current song.\n{0}stop - Stop playback.\n{0}queue - Show the playback queue.\n{0}remove <index> - Remove an item from the queue.\n{0}clear - Remove all items from the queue.\n{0}shuffle - Shuffle the playback queue.\n{0}help - Show this help message.",
+  "HELP": "List of commands:\n\n{0}play <[!music]> <search> - Search and play a song.\n{0}pause - Pause the current playback.\n{0}resume - Resume playback.\n{0}skip - Skip the current song.\n{0}stop - Stop playback.\n{0}queue - Show the playback queue.\n{0}remove <index> - Remove an item from the queue.\n{0}clear - Remove all items from the queue.\n{0}shuffle - Shuffle the playback queue.\n{0}help - Show this help message.",
   "HEAVY_OPERATION_ONGOING": "❎ AN operation is already taking place. Please wait for it to finish.",
-  "QUEUE_LIMIT_REACHED": "❎ The queue limit has been reached."
+  "QUEUE_LIMIT_REACHED": "❎ The queue limit has been reached.",
+  "QUEUE_MUST_BE_EMPTY_FOR_RADIO_MODE": "❎ The queue must be empty to enable radio mode.",
+  "RADIO_MODE_IS_ENABLED": "❎ Radio mode is enabled and therefore, you cannot use this command.",
+  "RADIO_MODE_DISABLED": "✅ Radio mode disabled.",
+  "RADIO_MODE_ENABLED": "✅ Radio mode enabled.",
+  "NO_SPOTIFY_CREDENTIALS": "❎ Spotify credentials are not set.",
+  "ARTIST_NOT_FOUND": "❎ Artist not found.",
+  "ARTIST_RADIO_MODE_ENABLED": "❎ Artist radio mode is enabled."
 }
 
 ```
@@ -130,8 +139,16 @@ Same file in Spanish:
   "CLEARED": "✅ Todos los elementos han sido eliminados.",
   "HELP": "**Listado de comandos:**\n\n`{0}play <[!music]> <búsqueda>` - Busca y reproduce una canción.\n`{0}pause` - Pausa la reproducción actual.\n`{0}resume` - Reanuda la reproducción.\n`{0}skip` - Salta la canción actual.\n`{0}stop` - Detiene la reproducción.\n`{0}queue` - Muestra la cola de reproducción.\n`{0}remove <índice>` - Elimina un elemento de la cola.\n`{0}clear` - Elimina todos los elementos de la cola.\n`{0}shuffle` - Mezcla la cola de reproducción.\n`{0}help` - Muestra este mensaje de ayuda.",
   "HEAVY_OPERATION_ONGOING": "❎ Ya hay una operación en curso. Por favor, espera a que termine.",
-  "QUEUE_LIMIT_REACHED": "❎ Se ha alcanzado el límite de la cola."
+  "QUEUE_LIMIT_REACHED": "❎ Se ha alcanzado el límite de la cola.",
+  "QUEUE_MUST_BE_EMPTY_FOR_RADIO_MODE": "❎ La cola debe estar vacía para habilitar el modo radio.",
+  "RADIO_MODE_IS_ENABLED": "❎ El modo radio está habilitado y, por tanto, no puedes realizar esta acción.",
+  "RADIO_MODE_DISABLED": "✅ Modo radio deshabilitado.",
+  "RADIO_MODE_ENABLED": "✅ Modo radio habilitado.",
+  "NO_SPOTIFY_CREDENTIALS": "❎ No se han configurado las credenciales de Spotify.",
+  "ARTIST_NOT_FOUND": "❎ No se encontró al artista.",
+  "ARTIST_RADIO_MODE_ENABLED": "❎ Modo radio de artista está habilitado"
 }
+
 ```
 
 ### Executing Gargabot:
@@ -172,6 +189,8 @@ When the `g!play` command is triggered by an user Gargabot checks whether the sp
 ![App Screenshot](https://i.imgur.com/m7nTwZW.jpeg)
 
 ![App Screenshot](https://i.imgur.com/dwt5pjg.jpeg)
+
+![App Screenshot](https://i.imgur.com/BWvrfrV.jpeg)
 ## Authors
 
 - [@Hernandarias](https://github.com/Hernandarias)
