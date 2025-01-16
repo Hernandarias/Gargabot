@@ -26,7 +26,7 @@ g!pause: Pause the current playback.
 g!resume: Resume playback.
 g!skip: Skip the current song.
 g!stop: Stop playback.
-g!queue: Show the playback queue.
+g!queue <page>: Show the playback queue.
 g!remove <index>: Remove an item from the queue.
 g!clear: Remove all items from the queue.
 g!shuffle: Shuffle the playback queue.
@@ -112,7 +112,8 @@ Both VoiceNext and Lavalink are available on Gargabot to be used to play audio i
   "RADIO_MODE_ENABLED": "✅ Radio mode enabled.",
   "NO_SPOTIFY_CREDENTIALS": "❎ Spotify credentials are not set.",
   "ARTIST_NOT_FOUND": "❎ Artist not found.",
-  "ARTIST_RADIO_MODE_ENABLED": "❎ Artist radio mode is enabled."
+  "ARTIST_RADIO_MODE_ENABLED": "❎ Artist radio mode is enabled.",
+  "AFK_DISCONNECT": "❎ You have been disconnected due to inactivity."
 }
 
 ```
@@ -147,7 +148,8 @@ Same file in Spanish:
   "RADIO_MODE_ENABLED": "✅ Modo radio habilitado.",
   "NO_SPOTIFY_CREDENTIALS": "❎ No se han configurado las credenciales de Spotify.",
   "ARTIST_NOT_FOUND": "❎ No se encontró al artista.",
-  "ARTIST_RADIO_MODE_ENABLED": "❎ Modo radio de artista está habilitado"
+  "ARTIST_RADIO_MODE_ENABLED": "❎ Modo radio de artista está habilitado",
+  "AFK_DISCONNECT": "✅ Desconectado por inactividad."
 }
 
 ```
@@ -176,6 +178,7 @@ When the `g!play` command is triggered by an user Gargabot checks whether the sp
 
 - If the query is plain text and the `[!music]` clause wasn't used then a search in YouTube is executed using the [YoutubeExplode](https://github.com/Tyrrrz/YoutubeExplode) package. The first result is the one getting played.
 - If the query is plain text and the `[!music]` clause was used then Gargabot searches that track in YouTube Music using reverse engineering to get as close as possible to the user's request. Note that this assumes the track exists in YouTube Music as a song and not only as a music or lyrics video; also, there's no guarantee that the gotten result is a perfect match to the user's request.
+- If the query is plain text and the `[!artistradio]` clause was used then Gargabot will search that artist using the [Spotify's public API](https://developer.spotify.com/documentation/web-api) and load tracks from that artist until the `g!stop` command is used.
 - If the query is a YouTube video or playlist url then [YoutubeExplode](https://github.com/Tyrrrz/YoutubeExplode) is used to handle those requests.
 - If the query is a Spotify song, playlist or album url then the [Spotify's public API](https://developer.spotify.com/documentation/web-api) is consumed to get each track information. Once that information was retrieved then Gargabot searches that track using the YouTube Music search module.
 
