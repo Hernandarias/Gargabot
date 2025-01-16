@@ -15,9 +15,9 @@
     <PackageReference Include="DSharpPlus.Rest" Version="5.0.0-nightly-02152" />
     <PackageReference Include="DSharpPlus.SlashCommands" Version="5.0.0-nightly-02152" />
     <PackageReference Include="DSharpPlus.VoiceNext" Version="5.0.0-nightly-02152" />
-    <PackageReference Include="HtmlAgilityPack" Version="1.11.61" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.0-preview.2.24128.5" />
-    <PackageReference Include="YoutubeExplode" Version="6.3.16" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.11.72" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.1" />
+    <PackageReference Include="YoutubeExplode" Version="6.5.1" />
   </ItemGroup>
 
 </Project>

@@ -13,9 +13,10 @@ namespace Gargabot.Utils.Youtube
         private string thumbnail;
         private string duration;
         private string author;
+        private string id;
         private string views;
 
-        public YoutubeVideo(string title, string url, string thumbnail, string duration, string author, string views)
+        public YoutubeVideo(string title, string url, string thumbnail, string duration, string author, string views, string id)
         {
             this.title = title;
             this.url = url;
@@ -23,6 +24,7 @@ namespace Gargabot.Utils.Youtube
             this.duration = duration;
             this.author = author;
             this.views = views;
+            this.id = id;
         }
         public string Title { get => title; set => title = value; }
         public string Url { get => url; set => url = value; }
@@ -30,6 +32,8 @@ namespace Gargabot.Utils.Youtube
         public string Duration {    get => duration; set => duration = value; }
         public string Author { get => author; set => author = value; }
         public string Views { get => views; set => views = value;}
+
+        public string Id { get => id; set => id = value; }
 
     }
 }

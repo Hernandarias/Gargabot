@@ -24,21 +24,18 @@ namespace Gargabot.Commands
             var connection = vnext.GetConnection(ctx.Guild);
             ulong channelId = ctx.Channel.Id;
             DiscordChannel channel = ctx.Guild.GetChannel(channelId);
-
             ulong serverId = ctx.Guild.Id;
             if(!perServerSession.ContainsKey(serverId))
             {
                 VoiceNextVoiceSession vs = new VoiceNextVoiceSession();
                 perServerSession.Add(serverId, vs);
             }
-
             perServerSession[serverId].Joined = false;
-
             if (!AreBotAndCallerInTheSameChannel(ctx))
             {
                 if (ctx.Member.VoiceState == null)
                 {
-                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("NOT_IN_A_VOICE_CHANNEL")));
+                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.NOT_IN_A_VOICE_CHANNEL)));
                     return;
                 }
                 else
@@ -50,7 +47,7 @@ namespace Gargabot.Commands
                     }
                     else
                     {
-                        await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("BOT_ALREADY_IN_ANOTHER_VOICE_CHANNEL")));
+                        await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.BOT_ALREADY_IN_ANOTHER_VOICE_CHANNEL)));
                         return;
                     }
                 }
@@ -59,16 +56,12 @@ namespace Gargabot.Commands
             if (perServerSession[serverId].Joined || AreBotAndCallerInTheSameChannel(ctx))
             {
                 await ctx.TriggerTypingAsync();
-                source.Trim();
-                string ytPattern = @"^(https?://)?(www\.)?(youtube\.com|youtu\.be)/watch\?v=[A-Za-z0-9_-]{11}$";
-                Regex regex = new Regex(ytPattern);
+                source = source.Trim();
                 Audio a;
-                if (regex.IsMatch(source))
+                if (RegexUtils.matchYoutubeUrl(source) || RegexUtils.matchM3U8Url(source))
                 {
-                    //Es una URL de Youtube válida
                     a = new Audio(source, "");
                     perServerSession[serverId].Queue.AddLast(a);
-                    //Falta analizar los casos de en vivos
                 }
                 else
                 {
@@ -81,7 +74,7 @@ namespace Gargabot.Commands
                     }
                     else
                     {
-                        await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("NO_TRACKS_FOUND_FOR_SEARCH", source)));
+                        await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.NO_TRACKS_FOUND_FOR_SEARCH, source)));
                         return;
                     }
                 }
@@ -94,7 +87,7 @@ namespace Gargabot.Commands
                 else
                 {
                     a.Title = YtDlpUtils.GetYoutubeVideoTitle(source);
-                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(a.Url, a.Title, messageManager.GetMessage("ADDED_TO_QUEUE_IN_POSITION", perServerSession[serverId].Queue.Count)));
+                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(a.Url, a.Title, messageManager.GetMessage(Message.ADDED_TO_QUEUE_IN_POSITION, perServerSession[serverId].Queue.Count)));
                 }
             }
         }
@@ -110,7 +103,7 @@ namespace Gargabot.Commands
                 var connection = vnext.GetConnection(ctx.Guild);
                 ulong channelId = ctx.Channel.Id;
                 DiscordChannel channel = ctx.Guild.GetChannel(channelId);
-                await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("STOPPED")));
+                await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.STOPPED)));
                 connection.Disconnect();
 
                 perServerSession.Remove(serverId);
@@ -131,7 +124,7 @@ namespace Gargabot.Commands
                 ulong channelId = ctx.Channel.Id;
                 DiscordChannel channel = ctx.Guild.GetChannel(channelId);
                 perServerSession[serverId].IsPaused = true;
-                await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("PAUSED")));
+                await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.PAUSED)));
                 connection.Pause();
 
             }
@@ -148,7 +141,7 @@ namespace Gargabot.Commands
                 ulong channelId = ctx.Channel.Id;
                 DiscordChannel channel = ctx.Guild.GetChannel(channelId);
                 perServerSession[serverId].IsPaused = false;
-                await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("RESUMED")));
+                await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.RESUMED)));
                 await connection.ResumeAsync();
             }
         }
@@ -176,7 +169,7 @@ namespace Gargabot.Commands
                 }
                 else
                 {
-                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("NO_ELEMENTS_IN_QUEUE")));
+                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.NO_ELEMENTS_IN_QUEUE)));
                 }
             }
         }
@@ -194,11 +187,11 @@ namespace Gargabot.Commands
                     var vnext = ctx.Client.GetVoiceNext();
                     var connection = vnext.GetConnection(ctx.Guild);
                     perServerSession[serverId].Cts.Cancel();
-                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("SKIPPED")));
+                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.SKIPPED)));
                 }
                 else
                 {
-                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("NO_AUDIO_PLAYING")));
+                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.NO_AUDIO_PLAYING)));
                 }
             }
         }
@@ -220,7 +213,7 @@ namespace Gargabot.Commands
                         if (position==index)
                         {
                             perServerSession[serverId].Queue.Remove(a);
-                            await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("BOT_ALREADY_IN_ANOTHER_VOICE_CHANNEL")));
+                            await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.BOT_ALREADY_IN_ANOTHER_VOICE_CHANNEL)));
                             break;
                         }
                         index++;
@@ -228,7 +221,7 @@ namespace Gargabot.Commands
                 }
                 else
                 {
-                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("OUT_OF_RANGE_IN_QUEUE")));
+                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.OUT_OF_RANGE_IN_QUEUE)));
                 }
             }
         }
@@ -259,14 +252,24 @@ namespace Gargabot.Commands
             Audio a = perServerSession[serverId].Queue.First.Value;
             perServerSession[serverId].Queue.RemoveFirst();
 
-            if (a.Title == "")
+            bool liveStream = RegexUtils.matchM3U8Url(a.Url);
+
+            if (a.Title == "" && !liveStream)
             {
                 UpdateAudioTitle(a);
             }
 
-            await channel.SendMessageAsync((CustomEmbedBuilder.CreateEmbed(a.Url, a.Title, messageManager.GetMessage("PLAYING_ON", ctx.Guild.Name))));
+            await channel.SendMessageAsync((CustomEmbedBuilder.CreateEmbed(a.Url, a.Title, messageManager.GetMessage(Message.PLAYING_ON, ctx.Guild.Name))));
 
-            var pcm = FFmpegUtils.ConvertYoutube(a.Url, perServerSession[serverId].Cts.Token);
+            Stream pcm;
+            if (liveStream)
+            {
+                pcm = FFmpegUtils.ConvertStream(a.Url, perServerSession[serverId].Cts.Token);
+            }
+            else
+            {
+                pcm = FFmpegUtils.ConvertYoutube(a.Url, perServerSession[serverId].Cts.Token);
+            }
 
             await pcm.CopyToAsync(transmit);
             await pcm.DisposeAsync();

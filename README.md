@@ -6,6 +6,7 @@ Gargabot is a music playing bot for Discord servers built using DSharpPlus in .N
 ## Features
 
 - Ability to play tracks from YouTube and Spotify
+- Ability to stream Twitch broadcasts
 - Ability to customize several tracks to be played when the bot joins a voice channel
 - Low RAM and CPU usage
 - On-going operations limit to avoid excessive resource usage
@@ -38,7 +39,7 @@ g!help: Show the help message.
 ### Requirements:
 
 - [.NET 8](https://dotnet.microsoft.com/es-es/download/dotnet/8.0)
-- Either [Lavalink 3.7.11](https://github.com/lavalink-devs/Lavalink/releases/tag/3.7.12) to use Lavalink as playback method or both [ffmpeg](https://ffmpeg.org/download.html) and [yt-dlp](https://github.com/yt-dlp/yt-dlp/releases) to use VoiceNext
+- Either [Lavalink 3.7.12](https://github.com/lavalink-devs/Lavalink/releases/tag/3.7.12) to use Lavalink as playback method or both [ffmpeg](https://ffmpeg.org/download.html) and [yt-dlp](https://github.com/yt-dlp/yt-dlp/releases) to use VoiceNext
 
 ### Choosing a playback method:
 

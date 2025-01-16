@@ -53,5 +53,26 @@ namespace Gargabot.Utils
 
             return ffmpeg.StandardOutput.BaseStream;
         }
+
+        public static Stream ConvertStream(string streamUrl, CancellationToken ct)
+        {
+            var ffmpeg = Process.Start(new ProcessStartInfo
+            {
+                FileName = botParams.ffmpeg_path,
+                Arguments = $@"-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 -i ""{streamUrl}"" -ac 2 -f s16le -ar 48000 pipe:1",
+                RedirectStandardOutput = true,
+                UseShellExecute = false
+            });
+
+            ct.Register(() =>
+            {
+                if (ffmpeg != null && !ffmpeg.HasExited)
+                {
+                    ffmpeg.Kill();
+                }
+            });
+
+            return ffmpeg.StandardOutput.BaseStream;
+        }
     }
 }

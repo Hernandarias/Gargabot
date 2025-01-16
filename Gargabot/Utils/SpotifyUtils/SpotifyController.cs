@@ -1,4 +1,5 @@
 ﻿using AngleSharp.Dom;
+using Gargabot.Utils.SpotifyUtils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -60,9 +61,13 @@ namespace Gargabot.Utils.Spotify
             }
         }
 
-        public async Task<List<string>> GetTracksFromPlaylist(string playlistUrl)
+        public async Task<List<SpotifyTrack>> GetTracksFromPlaylist(string playlistUrl, List<SpotifyTrack> lst, int offset)
         {
-            List<string> tracks = new List<string>();
+            List<SpotifyTrack> tracks = new List<SpotifyTrack>();
+            if(lst!=null)
+            {
+                tracks = lst;
+            }
             string playlistId = "";
             if (string.IsNullOrEmpty(playlistUrl))
                 return tracks;
@@ -86,7 +91,7 @@ namespace Gargabot.Utils.Spotify
             if (token == null)
                 return tracks;
 
-            string endpoint = "https://api.spotify.com/v1/playlists/" + playlistId;
+            string endpoint = "https://api.spotify.com/v1/playlists/" + playlistId + "/tracks?offset=" + offset + "&limit=50";
 
             using (HttpClient client = new HttpClient())
             {
@@ -109,7 +114,7 @@ namespace Gargabot.Utils.Spotify
 
                     var jsonObject = JObject.Parse(responseBody);
 
-                    foreach (var item in jsonObject["tracks"]["items"])
+                    foreach (var item in jsonObject["items"])
                     {
                         var track = item["track"];
                         var songName = track.Value<string>("name");
@@ -119,20 +124,29 @@ namespace Gargabot.Utils.Spotify
                         string albumName = album.Value<string>("name");
 
                         string trackTitle = songName + " ¡] " + string.Join(", ", artists) + $" ¡] ({albumName})" ;
-                        tracks.Add(trackTitle);
                         
+                        SpotifyTrack spotifyTrack = new SpotifyTrack(songName, trackTitle, buildSpotifyUrl(track.Value<string>("id")));
+                        tracks.Add(spotifyTrack);
                     }
 
                 }
 
             }
-            return tracks;
+           
+            if(tracks.Count-offset == 50)
+            {
+                return await GetTracksFromPlaylist(playlistUrl, tracks, offset+50);
+            }
+            else
+            {
+                return tracks;
+            }
 
         }
 
-        public async Task<List<string>> GetTracksFromAlbum(string albumUrl)
+        public async Task<List<SpotifyTrack>> GetTracksFromAlbum(string albumUrl)
         {
-            List<string> tracks = new List<string>();
+            List<SpotifyTrack> tracks = new List<SpotifyTrack>();
             string albumId = "";
             if (string.IsNullOrEmpty(albumUrl))
                 return tracks;
@@ -189,8 +203,8 @@ namespace Gargabot.Utils.Spotify
 
                         string trackTitle = songName + " ¡] " + string.Join(", ", artists) + $" ¡] ({albumName})";
 
-
-                        tracks.Add(trackTitle);
+                        SpotifyTrack spotifyTrack = new SpotifyTrack(songName, trackTitle, buildSpotifyUrl(item.Value<string>("id")));
+                        tracks.Add(spotifyTrack);
 
                     }
 
@@ -265,7 +279,7 @@ namespace Gargabot.Utils.Spotify
             string token = await GetToken();
             if (token == null)
                 return new Tuple<string, List<string>>("", []);
-            string endpoint = "https://api.spotify.com/v1/search?q=" + Uri.EscapeDataString(name) + "&type=track&limit=1";
+            string endpoint = "https://api.spotify.com/v1/search?q=" + Uri.EscapeDataString(name) + "&type=track";
             using (HttpClient client = new HttpClient())
             {
                 var request = new HttpRequestMessage
@@ -287,10 +301,28 @@ namespace Gargabot.Utils.Spotify
 
                     if (tracks.Count > 0)
                     {
+                        //default
                         trackId = (string)tracks[0]["id"];
                         foreach (var artist in tracks[0]["artists"])
                         {
                             artistIds.Add((string)artist["id"]);
+                        }
+                        //Ahora, para cada uno: tomar el nombre del track, dejar solo los caracteres y transformar a minusculas y transformar los tildes, etc y si el name (tambien con esas transformaciones )contiene el nombre del track, entonces es el track
+                        foreach (var track in tracks)
+                        {
+                            string trackName = (string)track["name"];
+                            string trackNameNormalized = new string(trackName.Where(c => char.IsLetterOrDigit(c)).ToArray()).ToLower();
+                            string nameNormalized = new string(name.Where(c => char.IsLetterOrDigit(c)).ToArray()).ToLower();
+                            if (trackNameNormalized.Contains(nameNormalized))
+                            {
+                                trackId = (string)track["id"];
+                                artistIds = new List<string>();
+                                foreach (var artist in track["artists"])
+                                {
+                                    artistIds.Add((string)artist["id"]);
+                                }
+                                break;
+                            }
                         }
                     }
                 }
@@ -298,127 +330,7 @@ namespace Gargabot.Utils.Spotify
             return new Tuple<string, List<string>>(trackId, artistIds);
         }
 
-        public async Task<Tuple<string, List<string>>> GetTrackRecommendation(Tuple<string, List<string>> baseTuple, string mode, Dictionary<string, bool> history)
-        {
-            List<string> artistIds = new List<string>();
-            Tuple<string, List<string>> result = new Tuple<string, List<string>>("", artistIds);
-            string token = await GetToken();
-            if (token == null)
-                return result;
-            string chosenTrack = "";
-            string endpoint = "";
-            if(mode == "SAME_ARTIST" && baseTuple.Item2.Count>0)
-            {
-                string seedTracks = baseTuple.Item1;
-                int x = 1;
-                foreach (string trackId in history.Keys)
-                {
-                    x++;
-                    seedTracks += "," + trackId;
-                    if (x >= 4)
-                        break;
-                }
-
-                endpoint = "https://api.spotify.com/v1/recommendations?seed_tracks=" + seedTracks +"&seed_artists=" + baseTuple.Item2.FirstOrDefault() + "&limit=70";
-            }
-            else
-            {
-                endpoint = "https://api.spotify.com/v1/recommendations?seed_tracks=" + baseTuple.Item1 + "&limit=50";
-            }
-            using (HttpClient client = new HttpClient())
-            {
-                var request = new HttpRequestMessage
-                {
-                    Method = HttpMethod.Get,
-                    RequestUri = new Uri(endpoint)
-                };
-                request.Headers.Add("Authorization", "Bearer " + token);
-
-                HttpResponseMessage response = await client.SendAsync(request);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    string responseBody = await response.Content.ReadAsStringAsync();
-
-                    JObject responseJson = JObject.Parse(responseBody);
-                    if (responseJson == null)
-                        return result;
-                    
-                    int maxPopularity = 0;
-                    foreach (var item in responseJson["tracks"])
-                    {
-                        string trackId = (string)item["id"];
-                        if(trackId == baseTuple.Item1)
-                        {
-                            continue;
-                        }
-                        if (history.ContainsKey(trackId))
-                        {
-                            continue;
-                        }
-                        bool validTrackForArtistMode = false;
-                        List<string> artistIdsForTrack = new List<string>();
-                        foreach (var artist in item["artists"])
-                        {
-                            artistIdsForTrack.Add((string)artist["id"]);
-                            foreach(string artistId in baseTuple.Item2)
-                            {
-                                if ((string)artist["id"] == artistId)
-                                {
-                                    validTrackForArtistMode = true;
-                                    break;
-                                }
-                            }
-                            if(validTrackForArtistMode)
-                            {
-                                break;
-                            }
-                        }
-                        if ((int)item["popularity"] > maxPopularity)
-                        {
-                            if (mode == "SAME_ARTIST" && validTrackForArtistMode)
-                            {
-                                maxPopularity = (int)item["popularity"];
-                                chosenTrack = buildSpotifyUrl(trackId);
-                                artistIds = artistIdsForTrack;
-                                Random random = new Random();
-                                if (random.Next(0, 5) == 1)
-                                    break;
-                            }
-                            else if (mode == "MOST_POPULAR")
-                            {
-                                maxPopularity = (int)item["popularity"];
-                                chosenTrack = buildSpotifyUrl(trackId);
-                                artistIds = artistIdsForTrack;  
-                            }
-                        }
-
-                    }
-                    
-                }
-            }
-            if (chosenTrack != "")
-            {
-                result = new Tuple<string, List<string>>(chosenTrack, artistIds);
-                return result;
-            }
-            else
-            {
-                if(mode == "SAME_ARTIST")
-                {
-                    string popularTrack = await GetRandomTopTrackFromArtistId(baseTuple.Item2.FirstOrDefault());
-                    if (!history.ContainsKey(popularTrack))
-                    {
-                        return new Tuple<string, List<string>>(buildSpotifyUrl(popularTrack), baseTuple.Item2);
-                    }
-                    return await GetTrackRecommendation(baseTuple, "MOST_POPULAR", history);
-                }
-                else
-                {
-                    return await GetTrackRecommendation(baseTuple, "SAME_ARTIST", history);
-                }   
-            }
-        }
+        
 
         public async Task<Tuple<string, string>> GetArtistIdAndTrackFromArtistName(string name)
         {
@@ -491,6 +403,61 @@ namespace Gargabot.Utils.Spotify
             return "";
         }
 
+        public async Task<List<string>> GetTopTracksFromArtistId(string artistId)
+        {
+            string token = await GetToken();
+            string endpoint = "https://api.spotify.com/v1/artists/" + artistId + "/top-tracks";
+            List<string> trackTitles = new List<string>();
+            using (HttpClient client = new HttpClient())
+            {
+                var request = new HttpRequestMessage
+                {
+                    Method = HttpMethod.Get,
+                    RequestUri = new Uri(endpoint)
+                };
+                request.Headers.Add("Authorization", "Bearer " + token);
+
+                HttpResponseMessage response = await client.SendAsync(request);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    string responseBody = await response.Content.ReadAsStringAsync();
+                    JObject responseJson = JObject.Parse(responseBody);
+
+                    if (responseJson == null)
+                        return trackTitles;
+
+                    JArray tracks = (JArray)responseJson["tracks"];
+                    if (tracks.Count > 0)
+                    {
+                        foreach (var track in tracks)
+                        {
+                            string trackSearchTitle = "";
+
+                            string trackTitle = (string)track["name"];
+                            trackSearchTitle += trackTitle + " ¡] ";
+
+                            JArray artistsArray = (JArray)track["artists"];
+                            foreach (JObject artist in artistsArray)
+                            {
+                                string artistName = (string)artist["name"];
+                                trackSearchTitle += artistName + ", ";
+                            }
+
+                            JObject album = (JObject)track["album"];
+                            string albumName = album.Value<string>("name");
+
+                            trackSearchTitle = trackSearchTitle.Substring(0, trackSearchTitle.Length - 2) + $" ¡] ({albumName})";
+
+                            trackTitles.Add(trackSearchTitle);
+
+                        }
+                    }
+                }
+            }
+            return trackTitles;
+        }
+
         public string GetTrackId(string trackUrl)
         {
             string trackId = "";
@@ -513,7 +480,7 @@ namespace Gargabot.Utils.Spotify
             return trackId;
         }
 
-        private string buildSpotifyUrl(string id)
+        public string buildSpotifyUrl(string id)
         {
             return "https://open.spotify.com/track/" + id;
         }

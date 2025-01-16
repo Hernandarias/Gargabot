@@ -1,15 +1,22 @@
 ﻿using AngleSharp.Css;
 using AngleSharp.Dom;
+using AngleSharp.Text;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
+using DSharpPlus.Interactivity;
 using DSharpPlus.Lavalink;
 using DSharpPlus.Lavalink.EventArgs;
 using Gargabot.AudioSessions;
+using Gargabot.Messages;
+using Gargabot.Utils;
 using Gargabot.Utils.DiscordUtils;
 using Gargabot.Utils.LavalinkUtilities;
+using Gargabot.Utils.Spotify;
 using Gargabot.Utils.Youtube;
 using Newtonsoft.Json;
+using System.Collections.Generic;
+using System.Xml.Linq;
 
 namespace Gargabot.Commands
 {
@@ -20,9 +27,14 @@ namespace Gargabot.Commands
         [Command("play")]
         public async Task Play(CommandContext ctx, [RemainingText] string search)
         {
+            if (string.IsNullOrEmpty(search) || search.Trim()=="")
+            {
+                return;
+            }
+
             if (ctx.Member.VoiceState == null)
             {
-                await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("NOT_IN_A_VOICE_CHANNEL")));
+                await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.NOT_IN_A_VOICE_CHANNEL)));
                 return;
             }
             var lava = ctx.Client.GetLavalink();
@@ -32,12 +44,11 @@ namespace Gargabot.Commands
             ulong channelId = ctx.Channel.Id;
             DiscordChannel channel = null;
 
-
             if (AreBotAndCallerInTheSameChannel(ctx) || node.GetGuildConnection(ctx.Member.VoiceState.Guild) == null)
             {
                 if (!lava.ConnectedNodes.Any())
                 {
-                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("GET_LAVALINK_CONNECTION_ERROR")));
+                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.GET_LAVALINK_CONNECTION_ERROR)));
                     return;
                 }
 
@@ -53,17 +64,17 @@ namespace Gargabot.Commands
                 }
                 else if(perServerSession[serverId].HeavyOperationOngoing)
                 {
-                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("HEAVY_OPERATION_ONGOING")));
+                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.HEAVY_OPERATION_ONGOING)));
                     return;
                 }
                 else if (perServerSession[serverId].Queue.Count+1 > botParams.perServerQueueLimit)
                 {
-                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("QUEUE_LIMIT_REACHED")));
+                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.QUEUE_LIMIT_REACHED)));
                     return;
                 }
                 else if (perServerSession[serverId].RadioMode || perServerSession[serverId].ArtistRadioMode)
                 {
-                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("RADIO_MODE_IS_ENABLED")));
+                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.RADIO_MODE_IS_ENABLED)));
                     return;
                 }
 
@@ -95,7 +106,7 @@ namespace Gargabot.Commands
                 {
                     if(!isSpotifyEnabled())
                     {
-                        await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("NO_SPOTIFY_CREDENTIALS")));
+                        await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.NO_SPOTIFY_CREDENTIALS)));
                         return;
                     }
                     search = search.Remove(0, 14);  
@@ -110,7 +121,7 @@ namespace Gargabot.Commands
                     }
                     else
                     {
-                        await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("ARTIST_NOT_FOUND")));
+                        await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.ARTIST_NOT_FOUND)));
                         return;
                     }
                 }
@@ -125,7 +136,7 @@ namespace Gargabot.Commands
 
                 if (tuple.Item2)
                 {
-                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("QUEUE_LIMIT_REACHED")));
+                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.QUEUE_LIMIT_REACHED)));
                     return;
                 }
 
@@ -134,7 +145,7 @@ namespace Gargabot.Commands
                 if (nltList.Count==0)
                 {
 
-                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("NO_TRACKS_FOUND_FOR_SEARCH", search)));
+                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.NO_TRACKS_FOUND_FOR_SEARCH, search)));
                     if (perServerSession[serverId].Joined && connection.CurrentState.CurrentTrack == null && perServerSession[serverId].Queue.Count <= 0)
                         await StopCommand(ctx);
                     return;
@@ -145,11 +156,11 @@ namespace Gargabot.Commands
 
                     perServerSession[serverId].Queue.AddLast(nlt);
                     if(nltList.Count==1)
-                        await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(nlt.Url, nlt.FinalTitle, messageManager.GetMessage("ADDED_TO_QUEUE_IN_POSITION", perServerSession[serverId].Queue.Count)));
+                        await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(nlt.Url, nlt.FinalTitle, messageManager.GetMessage(Message.ADDED_TO_QUEUE_IN_POSITION, perServerSession[serverId].Queue.Count)));
                 }
 
                 if (nltList.Count > 1)
-                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("MULTIPLE_TRACKS_ADDED_TO_QUEUE", nltList.Count)));
+                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.MULTIPLE_TRACKS_ADDED_TO_QUEUE, nltList.Count)));
 
                 //Join audio
                 if (firstJoin && botParams.allowJoinAudio && botParams.joinAudiosList.Count > 0)
@@ -184,7 +195,7 @@ namespace Gargabot.Commands
             }
             else
             {
-                await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("BOT_ALREADY_IN_ANOTHER_VOICE_CHANNEL")));
+                await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.BOT_ALREADY_IN_ANOTHER_VOICE_CHANNEL)));
             }
 
         }
@@ -194,8 +205,18 @@ namespace Gargabot.Commands
         private async Task PlayNextTrack(LavalinkGuildConnection connection, ulong serverId, ulong channelId, bool joinAudio)
         {
 
-            if (connection == null)
+            if (connection == null || !perServerSession.ContainsKey(serverId))
             {
+                return;
+            }
+
+            DiscordChannel channel = connection.Guild.GetChannel(channelId);
+
+            //afk check
+            if (connection.Channel.Users.Count<=1)
+            {
+                await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.AFK_DISCONNECT)));
+                DisconnectFromVoiceChannel(connection, channel, serverId);
                 return;
             }
 
@@ -210,16 +231,26 @@ namespace Gargabot.Commands
 
             perServerSession[serverId].Queue.RemoveFirst();
 
-            DiscordChannel channel = connection.Guild.GetChannel(channelId);
 
             if (!joinAudio)
             {
+                //speed up spotify songs load
+                if (RegexUtils.matchSpotifySongUrl(nlt.Url))
+                {
+                    var tuple = await LavalinkController.loadLavalinkTrack(nlt.Node, nlt.Url, true, perServerSession[serverId].Queue.Count);
+                    List<NewLavalinkTrack> nltList = tuple.Item1;
+                    if (nltList.Count > 0)
+                    {
+                        nlt = nltList[0];
+                    }
+                }
+
                 if (channel.Id!=0)
                 {
                     if(nlt.ThumbnailUrl=="")
-                        await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(nlt.Url, nlt.FinalTitle, messageManager.GetMessage("PLAYING_ON", connection.Guild.Name), $"00:00:00 - {nlt.Duration}"));
+                        await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(nlt.Url, nlt.FinalTitle, messageManager.GetMessage(Message.PLAYING_ON, connection.Guild.Name), $"00:00:00 - {nlt.Duration}"));
                     else
-                        await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(nlt.Url, nlt.FinalTitle, messageManager.GetMessage("PLAYING_ON", connection.Guild.Name), $"00:00:00 - {nlt.Duration}", nlt.ThumbnailUrl));
+                        await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(nlt.Url, nlt.FinalTitle, messageManager.GetMessage(Message.PLAYING_ON, connection.Guild.Name), $"00:00:00 - {nlt.Duration}", nlt.ThumbnailUrl));
                     NewLavalinkTrack nltCopy = new NewLavalinkTrack(nlt);
                     perServerSession[serverId].LastTrackPlayed = nltCopy;
                 }        
@@ -230,11 +261,41 @@ namespace Gargabot.Commands
             //If nlt.track (lavalinkTrack) is null then I should load the LavaLink track using the Youtube audio URL
             if (nlt.Track == null)
             {
-                string realAudioURL = await YoutubeController.getAudioRealUrl(nlt.Url);
+                string realAudioURL = "";
+                int maxRetries = 5;
+                int retryCount = 0;
+                bool success = false;
+
+                while (retryCount < maxRetries && !success)
+                {
+                    try
+                    {
+                        realAudioURL = await YoutubeController.getAudioRealUrl(nlt.Url);
+                        success = true;
+                    }
+                    catch (Exception e)
+                    {
+                        retryCount++;
+                        if (retryCount >= maxRetries) 
+                        {
+                            if (perServerSession[serverId].Queue.Count > 0 || perServerSession[serverId].RadioMode || perServerSession[serverId].ArtistRadioMode)
+                                await PlayNextTrack(connection, serverId, channelId, false);
+                            else
+                                DisconnectFromVoiceChannel(connection, channel, serverId);
+
+                            return; 
+                        }
+                    }
+                }
+
                 nlt.Track=await LavalinkController.loadLavalinkTrack(realAudioURL, nlt.Node, LavalinkSearchType.Plain);
             }
-
+            if(!string.IsNullOrEmpty(nlt.YoutubeVideoId) && (perServerSession[serverId].RadioMode || perServerSession[serverId].ArtistRadioMode) && !perServerSession[serverId].CurrentRadioHistory.ContainsKey(nlt.YoutubeVideoId))
+            {
+                perServerSession[serverId].CurrentRadioHistory.Add(nlt.YoutubeVideoId, true);
+            }
             await connection.PlayAsync(nlt.Track);
+            
 
         }
 
@@ -248,42 +309,27 @@ namespace Gargabot.Commands
             }
             else if (perServerSession[serverId].RadioMode || perServerSession[serverId].ArtistRadioMode)
             {
-                NewLavalinkTrack nlt;
-                Tuple<string, List<string>, bool> trackIdentifier; //Item1: trackIdOrName, Item2: artistList, Item3: isSpotifyDataComplete
-                Tuple<NewLavalinkTrack, string> result = new Tuple<NewLavalinkTrack, string>(null, null);
+                NewLavalinkTrack result = null;
+                string videoId;
+                if (string.IsNullOrEmpty(perServerSession[serverId].LastTrackPlayed.YoutubeVideoId))
+                    videoId = await YoutubeMusicController.getYoutubeMusicUrlFromQuery(perServerSession[serverId].LastTrackPlayed.FinalTitle);
+                else
+                    videoId = perServerSession[serverId].LastTrackPlayed.YoutubeVideoId;
+
                 if (perServerSession[serverId].RadioMode)
                 {
-                    
-                    if (!string.IsNullOrEmpty(perServerSession[serverId].LastTrackPlayed.SpotifyTrackId) && perServerSession[serverId].LastTrackPlayed.SpotifyArtistsIds.Count > 0)
-                    {
-                        trackIdentifier = new Tuple<string, List<string>, bool>(perServerSession[serverId].LastTrackPlayed.SpotifyTrackId, perServerSession[serverId].LastTrackPlayed.SpotifyArtistsIds, true);
-                    }
-                    else
-                    {
-                        if (string.IsNullOrEmpty(perServerSession[serverId].LastTrackPlayed.FullTitle))
-                            trackIdentifier = new Tuple<string, List<string>, bool>(perServerSession[serverId].LastTrackPlayed.FinalTitle, new List<string>(), false);
-                        else
-                            trackIdentifier = new Tuple<string, List<string>, bool>(perServerSession[serverId].LastTrackPlayed.FullTitle, new List<string>(), false);
-                    }
-                    result = await LavalinkController.getNextRadioTrack(perServerSession[serverId].LastTrackPlayed.Node, false, trackIdentifier, perServerSession[serverId].CurrentRadioHistory);
-
-                    
+                    result = await LavalinkController.getNextRadioTrack(perServerSession[serverId].LastTrackPlayed.Node, videoId, perServerSession[serverId].CurrentRadioHistory); 
                 }
                 else if (perServerSession[serverId].ArtistRadioMode)
                 {
-                    trackIdentifier = new Tuple<string, List<string>, bool>(perServerSession[serverId].LastTrackPlayed.SpotifyTrackId, new List<string> { perServerSession[serverId].ArtistRadioArtistId }, true);
-                    result = await LavalinkController.getNextRadioTrack(perServerSession[serverId].LastTrackPlayed.Node, true, trackIdentifier, perServerSession[serverId].CurrentRadioHistory);
+                    result = await LavalinkController.getNextArtistRadioTrack(perServerSession[serverId].LastTrackPlayed.Node, videoId, perServerSession[serverId].ArtistRadioArtistId, perServerSession[serverId].CurrentRadioHistory);
                 }
 
 
-                if (result != null && result.Item1 != null)
+                if (result != null)
                 {
-                    perServerSession[serverId].Queue.AddLast(result.Item1);
-                    perServerSession[serverId].CurrentRadioHistory.Add(result.Item1.SpotifyTrackId, true);
-                    if (!perServerSession[serverId].CurrentRadioHistory.ContainsKey(result.Item2))
-                    {
-                        perServerSession[serverId].CurrentRadioHistory.Add(result.Item2, true);
-                    }
+                    perServerSession[serverId].Queue.AddLast(result);
+                    perServerSession[serverId].CurrentRadioHistory.Add(result.YoutubeVideoId, true);
                     await PlayNextTrack(connection, serverId, perServerSession[serverId].CallerTextChannelId, false);
                 }
             }
@@ -304,7 +350,7 @@ namespace Gargabot.Commands
 
                 if (!ll.ConnectedNodes.Any())
                 {
-                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("GET_LAVALINK_CONNECTION_ERROR")));
+                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.GET_LAVALINK_CONNECTION_ERROR)));
                     return;
                 }
 
@@ -317,21 +363,21 @@ namespace Gargabot.Commands
 
                 if (connection == null)
                 {
-                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("GET_LAVALINK_CONNECTION_ERROR")));
+                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.GET_LAVALINK_CONNECTION_ERROR)));
                     return;
                 }
 
 
                 if (connection.CurrentState.CurrentTrack == null)
                 {
-                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("NO_AUDIO_PLAYING")));
+                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.NO_AUDIO_PLAYING)));
                     return;
                 }
 
                 perServerSession[serverId].IsPaused = true;
 
                 await connection.PauseAsync();
-                await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("PAUSED")));
+                await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.PAUSED)));
             }
         }
         
@@ -345,7 +391,7 @@ namespace Gargabot.Commands
 
                 if (!ll.ConnectedNodes.Any())
                 {
-                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("GET_LAVALINK_CONNECTION_ERROR")));
+                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.GET_LAVALINK_CONNECTION_ERROR)));
                     return;
                 }
 
@@ -358,13 +404,13 @@ namespace Gargabot.Commands
 
                 if (connection == null)
                 {
-                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("GET_LAVALINK_CONNECTION_ERROR")));
+                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.GET_LAVALINK_CONNECTION_ERROR)));
                     return;
                 }
 
-                if(!isSpotifyEnabled())
+                if (!isSpotifyEnabled())
                 {
-                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("NO_SPOTIFY_CREDENTIALS")));
+                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.NO_SPOTIFY_CREDENTIALS)));
                     return;
                 }
 
@@ -372,31 +418,31 @@ namespace Gargabot.Commands
                 {
                     perServerSession[serverId].CurrentRadioHistory.Clear();
                     perServerSession[serverId].RadioMode = false;
-                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("RADIO_MODE_DISABLED")));
+                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.RADIO_MODE_DISABLED)));
                     return;
                 }
 
                 if (connection.CurrentState.CurrentTrack == null)
                 {
-                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("NO_AUDIO_PLAYING")));
+                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.NO_AUDIO_PLAYING)));
                     return;
                 }
 
                 if (perServerSession[serverId].Queue.Count > 0)
                 {
-                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("QUEUE_MUST_BE_EMPTY_FOR_RADIO_MODE")));
+                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.QUEUE_MUST_BE_EMPTY_FOR_RADIO_MODE)));
                     return;
                 }
 
                 if (perServerSession[serverId].ArtistRadioMode)
                 {
-                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("ARTIST_RADIO_MODE_ENABLED")));
+                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.ARTIST_RADIO_MODE_ENABLED)));
                     return;
                 }
 
                 perServerSession[serverId].RadioMode = true;
                 perServerSession[serverId].CurrentRadioHistory = new Dictionary<string, bool>();
-                await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("RADIO_MODE_ENABLED")));
+                await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.RADIO_MODE_ENABLED)));
             }
         }
 
@@ -411,7 +457,7 @@ namespace Gargabot.Commands
 
                 if (!ll.ConnectedNodes.Any())
                 {
-                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("GET_LAVALINK_CONNECTION_ERROR")));
+                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.GET_LAVALINK_CONNECTION_ERROR)));
                     return;
                 }
 
@@ -424,7 +470,7 @@ namespace Gargabot.Commands
 
                 if (connection == null)
                 {
-                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("GET_LAVALINK_CONNECTION_ERROR")));
+                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.GET_LAVALINK_CONNECTION_ERROR)));
                     return;
                 }
 
@@ -433,7 +479,7 @@ namespace Gargabot.Commands
                 if (perServerSession[serverId].IsPaused)
                 {
                     await connection.ResumeAsync();
-                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("RESUMED")));
+                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.RESUMED)));
                 }
                 perServerSession[serverId].IsPaused = false;
             }
@@ -456,15 +502,26 @@ namespace Gargabot.Commands
         }
 
         [Command("queue")]
-        public async Task QueueCommand(CommandContext ctx)
+        public async Task NewQueueCommand(CommandContext ctx, [RemainingText] string pageStr)
         {
             if (AreBotAndCallerInTheSameChannel(ctx))
             {
+                int page = 1;
+                try
+                {
+                    page = int.Parse(pageStr);
+                }
+                catch(Exception e)
+                {
+                }
+
+                ushort amountPerPage = 50;
+
                 var ll = ctx.Client.GetLavalink();
 
                 if (!ll.ConnectedNodes.Any())
                 {
-                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("GET_LAVALINK_CONNECTION_ERROR")));
+                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.GET_LAVALINK_CONNECTION_ERROR)));
                     return;
                 }
 
@@ -476,26 +533,38 @@ namespace Gargabot.Commands
 
                 if (perServerSession[serverId].HeavyOperationOngoing)
                 {
-                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("HEAVY_OPERATION_ONGOING")));
+                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.HEAVY_OPERATION_ONGOING)));
                     return;
                 }
 
-                if (perServerSession[serverId].Queue.Count > 0)
+                if (perServerSession[serverId].Queue.Count <= 0)
                 {
-                    int index = 1;
-                    string queueInfo = "";
-                    foreach (NewLavalinkTrack t in perServerSession[serverId].Queue)
-                    {
-                        queueInfo += $"{index}: {t.FinalTitle}\n";
-                        index++;
-                    }
-                    var queueEmbed = CustomEmbedBuilder.CreateEmbed(queueInfo);
-                    await channel.SendMessageAsync(queueEmbed);
+                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.NO_ELEMENTS_IN_QUEUE)));
+                    return;
                 }
-                else
+
+                int pages = (int)Math.Ceiling((double)perServerSession[serverId].Queue.Count / amountPerPage);
+                if (page > pages)
                 {
-                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("NO_ELEMENTS_IN_QUEUE")));
+                    page = pages;
                 }
+                int x = (page - 1) * amountPerPage;
+                int count = perServerSession[serverId].Queue.Count - x;
+                if (count > amountPerPage)
+                    count = amountPerPage;
+                string queueInfo = "";
+                int index = (page-1) * amountPerPage;
+                if (index == 0)
+                    index = 1;
+                queueInfo += $"📄 {page}/{pages}\n\n";
+                foreach (NewLavalinkTrack t in perServerSession[serverId].Queue.Skip(x).Take(count))
+                {
+                    queueInfo += $"{index}: {t.FinalTitle}\n";
+                    index++;
+                }
+                var queueEmbed = CustomEmbedBuilder.CreateEmbed(queueInfo);
+                await channel.SendMessageAsync(queueEmbed);
+
             }
         }
 
@@ -508,7 +577,7 @@ namespace Gargabot.Commands
 
                 if (perServerSession[serverId].HeavyOperationOngoing)
                 {
-                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("HEAVY_OPERATION_ONGOING")));
+                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.HEAVY_OPERATION_ONGOING)));
                     return;
                 }
 
@@ -529,7 +598,7 @@ namespace Gargabot.Commands
 
                             if (channel != null)
                             {
-                                await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("DELETED", t.FinalTitle)));
+                                await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.DELETED, t.FinalTitle)));
                             }
 
                             break;
@@ -539,7 +608,7 @@ namespace Gargabot.Commands
                 }
                 else
                 {
-                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("OUT_OF_RANGE_IN_QUEUE")));
+                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.OUT_OF_RANGE_IN_QUEUE)));
                 }
             }
         }
@@ -553,7 +622,7 @@ namespace Gargabot.Commands
 
                 if (perServerSession[serverId].HeavyOperationOngoing)
                 {
-                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("HEAVY_OPERATION_ONGOING")));
+                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.HEAVY_OPERATION_ONGOING)));
                     return;
                 }
 
@@ -564,7 +633,7 @@ namespace Gargabot.Commands
                 DiscordChannel channel = connection.Guild.GetChannel(channelId);
 
                 perServerSession[serverId].Queue.Clear();
-                await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("CLEARED")));
+                await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.CLEARED)));
             }
         }
 
@@ -577,7 +646,7 @@ namespace Gargabot.Commands
 
                 if (!ll.ConnectedNodes.Any())
                 {
-                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("GET_LAVALINK_CONNECTION_ERROR")));
+                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.GET_LAVALINK_CONNECTION_ERROR)));
                     return;
                 }
 
@@ -588,7 +657,7 @@ namespace Gargabot.Commands
 
                 if (perServerSession[serverId].HeavyOperationOngoing)
                 {
-                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("HEAVY_OPERATION_ONGOING")));
+                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.HEAVY_OPERATION_ONGOING)));
                     return;
                 }
 
@@ -596,7 +665,7 @@ namespace Gargabot.Commands
 
                 if (connection == null)
                 {
-                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("GET_LAVALINK_CONNECTION_ERROR")));
+                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.GET_LAVALINK_CONNECTION_ERROR)));
                     return;
                 }
 
@@ -604,7 +673,7 @@ namespace Gargabot.Commands
                 {
                     await connection.StopAsync();
                     if (!perServerSession[serverId].IsPlayingJoinAudio)
-                        await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("SKIPPED")));
+                        await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.SKIPPED)));
                 }
 
 
@@ -620,7 +689,7 @@ namespace Gargabot.Commands
 
                 if (!ll.ConnectedNodes.Any())
                 {
-                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("GET_LAVALINK_CONNECTION_ERROR")));
+                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.GET_LAVALINK_CONNECTION_ERROR)));
                     return;
                 }
 
@@ -630,20 +699,13 @@ namespace Gargabot.Commands
 
                 if (perServerSession[serverId].HeavyOperationOngoing)
                 {
-                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("HEAVY_OPERATION_ONGOING")));
+                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.HEAVY_OPERATION_ONGOING)));
                     return;
                 }
 
-                await connection.DisconnectAsync();
                 ulong channelId = ctx.Channel.Id;
                 DiscordChannel channel = connection.Guild.GetChannel(channelId);
-
-                perServerSession[serverId].Queue.Clear();
-                perServerSession[serverId].RadioMode = false;
-                perServerSession[serverId].ArtistRadioMode = false;
-                perServerSession.Remove(serverId);
-
-                await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("STOPPED")));
+                DisconnectFromVoiceChannel(connection, channel, serverId);
             }
         }
 
@@ -656,7 +718,7 @@ namespace Gargabot.Commands
 
                 if (perServerSession[serverId].HeavyOperationOngoing)
                 {
-                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("HEAVY_OPERATION_ONGOING")));
+                    await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.HEAVY_OPERATION_ONGOING)));
                     return;
                 }
 
@@ -666,7 +728,6 @@ namespace Gargabot.Commands
                 ulong channelId = ctx.Channel.Id;
                 DiscordChannel channel = connection.Guild.GetChannel(channelId);
 
-                //This is an O(3n) operation
                 if (perServerSession[serverId].Queue.Count > 0)
                 {
                     Random r = new Random();
@@ -681,13 +742,25 @@ namespace Gargabot.Commands
                         perServerSession[serverId].Queue.AddLast(t);
                     }
 
-                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("SHUFFLED")));
+                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.SHUFFLED)));
                 }
                 else
                 {
-                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage("NO_ELEMENTS_IN_QUEUE")));
+                    await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.NO_ELEMENTS_IN_QUEUE)));
                 }
             }
+        }
+
+        private async void DisconnectFromVoiceChannel(LavalinkGuildConnection connection, DiscordChannel channel, ulong serverId)
+        {
+            await connection.DisconnectAsync();
+
+            perServerSession[serverId].Queue.Clear();
+            perServerSession[serverId].RadioMode = false;
+            perServerSession[serverId].ArtistRadioMode = false;
+            perServerSession.Remove(serverId);
+
+            await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.STOPPED)));
         }
 
     }

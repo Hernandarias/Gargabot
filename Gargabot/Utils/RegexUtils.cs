@@ -25,20 +25,23 @@ namespace Gargabot.Utils
 
         public static bool matchYoutubeUrl(string input)
         {
-            Regex regex = new Regex(@"^(https?://)?(www\.)?(youtube\.com|youtu\.be|music\.youtube\.com)/watch\?v=[A-Za-z0-9_-]{11}(&[A-Za-z0-9_-]+=[A-Za-z0-9_%]*)*$");
+            Regex regex = new Regex(@"^(https?://)?(www\.)?(youtube\.com|youtu\.be|music\.youtube\.com)/watch\?v=[A-Za-z0-9_-]{11}(&(?!(list=))[A-Za-z0-9_-]+=[A-Za-z0-9_%]*)*$");
             return regex.IsMatch(input);
         }
 
         public static bool matchYoutubePlaylistUrl(string input)
         {
-            Regex regex = new Regex(@"https:\/\/www\.youtube\.com\/playlist\?list=[A-Za-z0-9_-]+");
+            Regex regex = new Regex(@"^(https?://)?(www\.|music\.)?youtube\.com/(playlist\?list=[A-Za-z0-9_-]+|watch\?.*(&|\?)list=[A-Za-z0-9_-]+)");
             return regex.IsMatch(input);
         }
+
+
 
         public static bool matchSpotifyPlaylistUrl(string input)
         {
             Regex regex = new Regex(@"https:\/\/open\.spotify\.com\/playlist\/([^\/?]+)(?:\?.*)?$");
-            return regex.IsMatch(input);
+            Regex regex1 = new Regex(@"https:\/\/open\.spotify\.com\/[^\/]+\/playlist\/([^\/?]+)(?:\?.*)?$");
+            return regex.IsMatch(input) || regex1.IsMatch(input);
         }
 
         public static bool matchSpotifyAlbumUrl(string input)
@@ -46,6 +49,12 @@ namespace Gargabot.Utils
             Regex regex = new Regex(@"https:\/\/open\.spotify\.com\/album\/([^\/?]+)(?:\?.*)?$");
             Regex regex1 = new Regex(@"https:\/\/open\.spotify\.com\/[^\/]+\/album\/([^\/?]+)(?:\?.*)?$");
             return regex.IsMatch(input) || regex1.IsMatch(input);
+        }
+
+        public static bool matchM3U8Url(string input)
+        {
+            Regex regex = new Regex(@"^https?:\/\/.*\.m3u8(\?.*)?$");
+            return regex.IsMatch(input);
         }
 
         public static string SanitizeYoutubeUrl(string input)

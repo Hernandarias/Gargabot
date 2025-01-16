@@ -17,6 +17,7 @@ namespace Gargabot.Utils.LavalinkUtilities
         private string duration;
         private LavalinkNodeConnection node;
         private string spotifyTrackId;
+        private string youtubeVideoId;
         private List<string> spotifyArtistsIds;
         public NewLavalinkTrack(string finalTitle, string url, string thumbnailUrl, string duration, LavalinkTrack track, LavalinkNodeConnection node)
         {
@@ -39,8 +40,13 @@ namespace Gargabot.Utils.LavalinkUtilities
             this.fullTitle = track.FullTitle;
             this.spotifyTrackId = track.SpotifyTrackId;
             this.spotifyArtistsIds = track.SpotifyArtistsIds;
-        }   
+            this.youtubeVideoId = track.YoutubeVideoId;
+        }
+
+        public NewLavalinkTrack() { }
         public string FinalTitle { get => finalTitle; set => finalTitle = value; }
+
+        public string YoutubeVideoId { get => youtubeVideoId; set => youtubeVideoId = value; }
         public string Url { get => url; set => url = value; }
         public LavalinkTrack Track { get => track; set => track = value; }
         public string ThumbnailUrl { get => thumbnailUrl; set => thumbnailUrl = value; }

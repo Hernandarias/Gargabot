@@ -12,6 +12,8 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 using YoutubeExplode.Videos;
 using System.ComponentModel.Design;
+using Gargabot.Utils.SpotifyUtils;
+using System.Diagnostics;
 
 namespace Gargabot.Utils.LavalinkUtilities
 {
@@ -22,60 +24,30 @@ namespace Gargabot.Utils.LavalinkUtilities
             SpotifyController sutils = new SpotifyController(BotParameters.LoadFromJson(BotParameters.GetAppSettingsPath()).spotifyCredentials);
             return await sutils.GetArtistIdAndTrackFromArtistName(name);
         }
-        public static async Task<Tuple<NewLavalinkTrack, string>> getNextRadioTrack(LavalinkNodeConnection node, bool artistRadio, Tuple<string, List<string>, bool> trackIdentifier, Dictionary<string, bool> history)
+        public static async Task<NewLavalinkTrack> getNextRadioTrack(LavalinkNodeConnection node, string videoId, Dictionary<string, bool> history)
         {
-            SpotifyController sutils = new SpotifyController(BotParameters.LoadFromJson(BotParameters.GetAppSettingsPath()).spotifyCredentials);
-            Tuple<string, List<string>> ids;
-            if (!trackIdentifier.Item3)
+            string url = await YoutubeMusicController.GetRecommendationFromVideoId(videoId, history);
+            YoutubeVideo ytVideo = await YoutubeController.getVideoInfo(url);
+            NewLavalinkTrack nlt = new NewLavalinkTrack();
+            if (ytVideo != null)
             {
-                ids = await sutils.GetTrackAndArtistIdFromTrackName(trackIdentifier.Item1);
-                if (!history.ContainsKey(ids.Item1))
-                {
-                    history.Add(ids.Item1, true);
-                }
+                nlt = new NewLavalinkTrack(ytVideo.Title, ytVideo.Url, ytVideo.Thumbnail, ytVideo.Duration, null, node);
+                nlt.YoutubeVideoId = ytVideo.Id;
             }
-            else
-            {
-                ids = new Tuple<string, List<string>>(trackIdentifier.Item1, trackIdentifier.Item2);
-            }
+            return nlt;
+        }
 
-            if (string.IsNullOrEmpty(ids.Item1))
+        public static async Task<NewLavalinkTrack> getNextArtistRadioTrack(LavalinkNodeConnection node, string videoId, string artistId, Dictionary<string, bool> history)
+        {
+            string url = await YoutubeMusicController.GetRecommendationFromVideoIdAndSpotifyArtistId(videoId, artistId, history);
+            YoutubeVideo ytVideo = await YoutubeController.getVideoInfo(url);
+            NewLavalinkTrack nlt = new NewLavalinkTrack();
+            if (ytVideo != null)
             {
-                return null;
+                nlt = new NewLavalinkTrack(ytVideo.Title, ytVideo.Url, ytVideo.Thumbnail, ytVideo.Duration, null, node);
+                nlt.YoutubeVideoId = ytVideo.Id;
             }
-
-            string mode = "";
-            if (artistRadio)
-            {
-                mode = "SAME_ARTIST";
-            }
-            else
-            {
-                Random random = new Random();
-                double d = random.NextDouble();
-                if (d >= 0 && d < 0.5)
-                {
-                    mode = "SAME_ARTIST";
-                }
-                else if (d >= 0.5 && d <= 1)
-                {
-                    mode = "MOST_POPULAR";
-                }
-            }
-
-
-            Tuple<string, List<string>> recommendation = await sutils.GetTrackRecommendation(ids, mode, history);
-            Tuple<List<NewLavalinkTrack>, bool> result = await loadLavalinkTrack(node, recommendation.Item1, true, 0);
-            if (result.Item1.Count > 0)
-            {
-                result.Item1.First().SpotifyTrackId = sutils.GetTrackId(recommendation.Item1);
-                result.Item1.First().SpotifyArtistsIds = recommendation.Item2;
-                return new Tuple<NewLavalinkTrack, string>(result.Item1.First(), ids.Item1);
-            }
-            else
-            {
-                return null;
-            }
+            return nlt;
         }
 
         public static async Task<Tuple<List<NewLavalinkTrack>, bool>> loadLavalinkTrack(LavalinkNodeConnection node, string search, bool musicTrack, int currentQueueCount)
@@ -98,6 +70,7 @@ namespace Gargabot.Utils.LavalinkUtilities
                     if (ytVideo!= null)
                     {
                         nlt = new NewLavalinkTrack(ytVideo.Title, ytVideo.Url, ytVideo.Thumbnail, ytVideo.Duration, null, node);
+                        nlt.YoutubeVideoId = ytVideo.Id;
                         nltList.Add(nlt);
                     }                     
                 }
@@ -117,59 +90,45 @@ namespace Gargabot.Utils.LavalinkUtilities
                     foreach (YoutubeVideo yt in ytVideos)
                     {
                         nlt = new NewLavalinkTrack(yt.Title, yt.Url, yt.Thumbnail, yt.Duration, null, node);
+                        nlt.YoutubeVideoId = yt.Id;
                         nltList.Add(nlt);
                     }
                 }
                 else if (RegexUtils.matchSpotifyPlaylistUrl(search) && botParams.useSpotify)
                 {
                     SpotifyController sutils = new SpotifyController(botParams.spotifyCredentials);
-                    var trackNames = await sutils.GetTracksFromPlaylist(search);
+                    var tracks = await sutils.GetTracksFromPlaylist(search, null, 0);
 
-                    queueLimitReached = checkQueueLimit(trackNames.Count, currentQueueCount, botParams.perServerQueueLimit);
+                    queueLimitReached = checkQueueLimit(tracks.Count, currentQueueCount, botParams.perServerQueueLimit);
                     if (queueLimitReached)
                     {
                         return new Tuple<List<NewLavalinkTrack>, bool>(nltList, queueLimitReached);
                     }
 
-                    foreach (string name in trackNames)
+                    foreach (SpotifyTrack st in tracks)
                     {
-                        if(!string.IsNullOrEmpty(name))
-                        {
-                            string ytMusicUrl = await YoutubeMusicController.getYoutubeMusicUrlFromCompleteTrackName(name, false);
-                            ytVideo = await YoutubeController.getVideoInfo(ytMusicUrl);
-                            if (ytVideo != null)
-                            {
-                                nlt = new NewLavalinkTrack(ytVideo.Title, ytVideo.Url, ytVideo.Thumbnail, ytVideo.Duration, null, node);
-                                nlt.FullTitle = name;
-                                nltList.Add(nlt);
-                            }
-                        }              
+                        nlt = new NewLavalinkTrack(st.Title, st.Url, "", "", null, node);
+                        nlt.FullTitle = st.FullTitle;
+                        nltList.Add(nlt);
                     }
+
                 }
                 else if (RegexUtils.matchSpotifyAlbumUrl(search) && botParams.useSpotify)
                 {
                     SpotifyController sutils = new SpotifyController(botParams.spotifyCredentials);
-                    var trackNames = await sutils.GetTracksFromAlbum(search);
+                    var tracks = await sutils.GetTracksFromAlbum(search);
 
-                    queueLimitReached = checkQueueLimit(trackNames.Count, currentQueueCount, botParams.perServerQueueLimit);
+                    queueLimitReached = checkQueueLimit(tracks.Count, currentQueueCount, botParams.perServerQueueLimit);
                     if(queueLimitReached)
                     {
                         return new Tuple<List<NewLavalinkTrack>, bool>(nltList, queueLimitReached);
                     }
 
-                    foreach (string name in trackNames)
+                    foreach (SpotifyTrack st in tracks)
                     {
-                        if (!string.IsNullOrEmpty(name))
-                        {
-                            string ytMusicUrl = await YoutubeMusicController.getYoutubeMusicUrlFromCompleteTrackName(name, false);
-                            ytVideo = await YoutubeController.getVideoInfo(ytMusicUrl);
-                            if (ytVideo != null)
-                            {
-                                nlt = new NewLavalinkTrack(ytVideo.Title, ytVideo.Url, ytVideo.Thumbnail, ytVideo.Duration, null, node);
-                                nlt.FullTitle = name;
-                                nltList.Add(nlt);
-                            }
-                        }
+                        nlt = new NewLavalinkTrack(st.Title, st.Url, "", "", null, node);
+                        nlt.FullTitle = st.FullTitle;
+                        nltList.Add(nlt);
                     }
 
                 }
@@ -185,6 +144,7 @@ namespace Gargabot.Utils.LavalinkUtilities
                         if (ytVideo != null)
                         {
                             nlt = new NewLavalinkTrack(ytVideo.Title, ytVideo.Url, ytVideo.Thumbnail, ytVideo.Duration, null, node);
+                            nlt.YoutubeVideoId = ytVideo.Id;
                             nlt.SpotifyTrackId = spotifyId;
                             nlt.FullTitle = search;
                             nltList.Add(nlt);
@@ -199,6 +159,7 @@ namespace Gargabot.Utils.LavalinkUtilities
                         nlt = new NewLavalinkTrack(lavalinkTrack.Title, lavalinkTrack.Uri.ToString(), "", lavalinkTrack.Length.ToString(), lavalinkTrack, node);
                         nltList.Add(nlt);
                     }
+
                 }
             }
             else
@@ -220,6 +181,7 @@ namespace Gargabot.Utils.LavalinkUtilities
                         if (ytVideo != null)
                         {
                             nlt = new NewLavalinkTrack(ytVideo.Title, ytVideo.Url, ytVideo.Thumbnail, ytVideo.Duration, null, node);
+                            nlt.YoutubeVideoId = ytVideo.Id;
                             nlt.FullTitle = search;
                             nltList.Add(nlt);
                         }

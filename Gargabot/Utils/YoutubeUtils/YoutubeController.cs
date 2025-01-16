@@ -20,7 +20,7 @@ namespace Gargabot.Utils.Youtube
             {
                 YoutubeClient yc = new YoutubeClient();
                 var video = await yc.Videos.GetAsync(url);
-                YoutubeVideo yv = new YoutubeVideo(video.Title, url, video.Thumbnails[0].Url, video.Duration.ToString(), video.Author.ChannelTitle, video.Engagement.ViewCount.ToString());
+                YoutubeVideo yv = new YoutubeVideo(video.Title, url, video.Thumbnails[0].Url, video.Duration.ToString(), video.Author.ChannelTitle, video.Engagement.ViewCount.ToString(), video.Id);
                 return yv;
             }
             catch
@@ -39,7 +39,7 @@ namespace Gargabot.Utils.Youtube
 
                 foreach (var video in videos)
                 {
-                    YoutubeVideo yv = new YoutubeVideo(video.Title, video.Url, video.Thumbnails[0].Url, video.Duration.ToString(), video.Author.ChannelTitle, 0.ToString());
+                    YoutubeVideo yv = new YoutubeVideo(video.Title, video.Url, video.Thumbnails[0].Url, video.Duration.ToString(), video.Author.ChannelTitle, 0.ToString(), video.Id);
                     yvs.Add(yv);
                 }
                 return yvs;
@@ -85,7 +85,7 @@ namespace Gargabot.Utils.Youtube
             await foreach (VideoSearchResult result in youtube.Search.GetResultsAsync(query))
             {
                 aux++;
-                YoutubeVideo yv = new YoutubeVideo(result.Title, result.Url, result.Thumbnails[0].Url, result.Duration.ToString(), result.Author.ChannelTitle, 0.ToString());
+                YoutubeVideo yv = new YoutubeVideo(result.Title, result.Url, result.Thumbnails[0].Url, result.Duration.ToString(), result.Author.ChannelTitle, 0.ToString(), result.Id);
                 return yv;
             }
             return null;

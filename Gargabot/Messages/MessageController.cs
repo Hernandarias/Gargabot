@@ -27,24 +27,23 @@ namespace Gargabot.Messages
                 throw new InvalidMessagesFormat();
             }
 
-            foreach(string message in MessageList.messages)
+            foreach(var message in Enum.GetValues(typeof(Message)))
             {
-                if (!messages.ContainsKey(message))
-                {
-                    throw new MessageNotFound(message);
-                }
+                if (!messages.ContainsKey(message.ToString()))
+                    throw new MessageNotFound(message.ToString());
             }
+            
         }
 
-        public string GetMessage(string key, params object[] args)
+        public string GetMessage(Message key, params object[] args)
         {
-            if (!messages.ContainsKey(key))
+            if (!messages.ContainsKey(key.ToString()))
             {
                 return "[Message Not Found] " + key;
 
             }
 
-            return string.Format(messages[key], args);
+            return string.Format(messages[key.ToString()], args);
         }
     }
 
