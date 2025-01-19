@@ -262,7 +262,7 @@ namespace Gargabot.Commands
             if (nlt.Track == null)
             {
                 string realAudioURL = "";
-                int maxRetries = 5;
+                int maxRetries = 10;
                 int retryCount = 0;
                 bool success = false;
 
@@ -279,13 +279,25 @@ namespace Gargabot.Commands
                         if (retryCount >= maxRetries) 
                         {
                             if (perServerSession[serverId].Queue.Count > 0 || perServerSession[serverId].RadioMode || perServerSession[serverId].ArtistRadioMode)
+                            {
+                                Console.WriteLine($"Error getting real audio URL for {nlt.Url} after {maxRetries} retries. Skipping to next track.");
+                                Console.WriteLine(e.ToString());
+                                if (perServerSession[serverId].RadioMode || perServerSession[serverId].ArtistRadioMode)
+                                    perServerSession[serverId].Queue.AddFirst(nlt);
                                 await PlayNextTrack(connection, serverId, channelId, false);
+                            }
                             else
                                 DisconnectFromVoiceChannel(connection, channel, serverId);
 
                             return; 
                         }
                     }
+                }
+
+                if (!success)
+                {
+                    DisconnectFromVoiceChannel(connection, channel, serverId);
+                    return;
                 }
 
                 nlt.Track=await LavalinkController.loadLavalinkTrack(realAudioURL, nlt.Node, LavalinkSearchType.Plain);
