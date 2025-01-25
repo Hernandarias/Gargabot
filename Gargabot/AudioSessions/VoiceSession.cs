@@ -10,7 +10,7 @@ namespace Gargabot.AudioSessions
     public class VoiceSession
     {
         private ulong callerTextChannelId;
-        private bool isPlayingJoinAudio, isPaused, isSkipped, joined, isPlaying, heavyOperationOngoing;
+        private bool isPlayingJoinAudio, isPaused, isSkipped, joined, isPlaying, heavyOperationOngoing, loop;
 
         public VoiceSession()
         {
@@ -21,6 +21,7 @@ namespace Gargabot.AudioSessions
             isPlayingJoinAudio = false;
             callerTextChannelId = 0;
             heavyOperationOngoing = false;
+            loop = false;
         }
         public bool IsPaused { get => isPaused; set => isPaused = value; }
         public bool IsPlaying { get => isPlaying; set => isPlaying = value; }
@@ -29,6 +30,6 @@ namespace Gargabot.AudioSessions
         public ulong CallerTextChannelId { get => callerTextChannelId; set => callerTextChannelId = value; }
         public bool IsSkipped { get => isSkipped; set => isSkipped = value; }
         public bool HeavyOperationOngoing { get => heavyOperationOngoing; set => heavyOperationOngoing = value; }
-
+        public bool Loop { get => loop; set => loop = value; }
     }
 }

@@ -65,18 +65,38 @@ namespace Gargabot.Utils.DiscordUtils
             };
         }
 
-        public static DiscordMessageBuilder CreateEmbedWithButtons(DiscordEmbedBuilder embed, string[] ids, string[] buttonLabels)
+        public static DiscordMessageBuilder CreatePlayEmbed(DiscordEmbedBuilder embed)
         {
             DiscordMessageBuilder builder = new DiscordMessageBuilder();
             builder.AddEmbed(embed);
 
-            for(int x=0; x<ids.Length; x++)
-            {
-                builder.AddComponents(new DiscordButtonComponent(ButtonStyle.Primary, ids[x], buttonLabels[x]));
-            }
+            List<DiscordButtonComponent[]> discordButtons = GetButtons();
+
+            foreach (DiscordButtonComponent[] buttons in discordButtons)
+                builder.AddComponents(buttons);
 
             return builder;
         }
+
+        public static List<DiscordButtonComponent[]> GetButtons()
+        {
+            List<DiscordButtonComponent[]> buttons = new List<DiscordButtonComponent[]>();
+            buttons.Add(new DiscordButtonComponent[]
+            {
+                new DiscordButtonComponent(DSharpPlus.ButtonStyle.Primary, "pause_button", "⏸️",false),
+                new DiscordButtonComponent(DSharpPlus.ButtonStyle.Primary, "skip_button", "⏭️", false),
+                new DiscordButtonComponent(DSharpPlus.ButtonStyle.Primary, "loop_button", "🔁", false),
+                new DiscordButtonComponent(DSharpPlus.ButtonStyle.Primary, "shuffle_button", "🔀", false),
+                new DiscordButtonComponent(DSharpPlus.ButtonStyle.Primary, "queue_button", "📜", false),
+            });
+            buttons.Add(new DiscordButtonComponent[]
+            {
+                new DiscordButtonComponent(DSharpPlus.ButtonStyle.Danger, "stop_button", "🛑", false)
+            });
+            return buttons;
+        }
+
+        
 
     }
 }

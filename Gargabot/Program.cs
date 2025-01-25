@@ -8,11 +8,22 @@ using DSharpPlus.Lavalink;
 using Gargabot.Exceptions;
 using Gargabot.Messages;
 using Newtonsoft.Json;
+using DSharpPlus.EventArgs;
 
 namespace Gargabot
 {
     internal class Program
     {
+
+        public delegate Task ButtonActionDelegate(DiscordClient client, ComponentInteractionCreateEventArgs e);
+
+        public static event ButtonActionDelegate OnPauseButtonPressed;
+        public static event ButtonActionDelegate OnSkipButtonPressed;
+        public static event ButtonActionDelegate OnLoopButtonPressed;
+        public static event ButtonActionDelegate OnStopButtonPressed;
+        public static event ButtonActionDelegate OnQueueButtonPressed;
+        public static event ButtonActionDelegate OnShuffleButtonPressed;
+
         static async Task Main(string[] args)
         {
             BotParameters botParams = BotParameters.LoadFromJson(BotParameters.GetAppSettingsPath());
@@ -69,6 +80,41 @@ namespace Gargabot
                                 SocketEndpoint = endpoint
                             };
                             var lavalink = discord.UseLavalink();
+
+                            discord.ComponentInteractionCreated += async (client, e) =>
+                            {
+                                var serverId = e.Guild.Id;
+
+                                switch (e.Id)
+                                {
+                                    case "pause_button":
+                                        if (OnPauseButtonPressed != null)
+                                            await OnPauseButtonPressed.Invoke(client, e);
+                                        break;
+                                    case "skip_button":
+                                        if (OnSkipButtonPressed != null)
+                                            await OnSkipButtonPressed.Invoke(client, e);
+                                        break;
+                                    case "loop_button":
+                                        if (OnLoopButtonPressed != null)
+                                            await OnLoopButtonPressed.Invoke(client, e);
+                                        break;
+                                    case "stop_button":
+                                        if (OnStopButtonPressed != null)
+                                            await OnStopButtonPressed.Invoke(client, e);
+                                        break;
+                                    case "queue_button":
+                                        if (OnQueueButtonPressed != null)
+                                            await OnQueueButtonPressed.Invoke(client, e);
+                                        break;
+                                    case "shuffle_button":
+                                        if (OnShuffleButtonPressed != null)
+                                            await OnShuffleButtonPressed.Invoke(client, e);
+                                        break;
+                                }
+                            };
+
+
                             commands.RegisterCommands<UniversalCommandModule>();
                             commands.RegisterCommands<LavalinkCommandModule>();                
                             await discord.ConnectAsync();

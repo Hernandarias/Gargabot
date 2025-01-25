@@ -35,6 +35,12 @@ namespace Gargabot.Messages
         NO_SPOTIFY_CREDENTIALS,
         ARTIST_RADIO_MODE_ENABLED,
         ARTIST_NOT_FOUND,
-        AFK_DISCONNECT
+        AFK_DISCONNECT,
+        REPEATED, //args: {0} - number of times
+        REPEATED_ONCE,
+        LOOP,
+        LOOP_DISABLED,
+        LOOP_IS_ENABLED
+
     }
 }

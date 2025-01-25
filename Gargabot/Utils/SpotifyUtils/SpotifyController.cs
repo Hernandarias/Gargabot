@@ -117,6 +117,11 @@ namespace Gargabot.Utils.Spotify
                     foreach (var item in jsonObject["items"])
                     {
                         var track = item["track"];
+                        if(string.IsNullOrEmpty(track.ToString()))
+                        {
+                            tracks.Clear();
+                            break;
+                        }
                         var songName = track.Value<string>("name");
                         var artists = track["artists"].Select(a => a.Value<string>("name")).ToList();
                         var album = track["album"];
@@ -139,6 +144,43 @@ namespace Gargabot.Utils.Spotify
             }
             else
             {
+                if (tracks.Count <= 0)
+                {
+                    string api = $"https://api.spotifydown.com/tracks/playlist/{playlistId}";
+
+                    using (HttpClient client = new HttpClient())
+                    {
+                        try
+                        {
+                            client.DefaultRequestHeaders.Add("Referer", "https://spotifydown.com/");
+                            client.DefaultRequestHeaders.Add("Origin", "https://spotifydown.com");
+
+                            HttpResponseMessage response = await client.GetAsync(api);
+                            response.EnsureSuccessStatusCode();
+
+                            string responseContent = await response.Content.ReadAsStringAsync();
+                            var jsonResponse = JObject.Parse(responseContent);
+
+                            if (jsonResponse["success"]?.Value<bool>() == true)
+                            {
+                                var trackList = jsonResponse["trackList"];
+                                foreach (var item in trackList)
+                                {
+                                    string songName = item["title"]?.ToString();
+                                    string artists = item["artists"]?.ToString();
+                                    string albumName = item["album"]?.ToString();
+
+                                    string trackTitle = $"{songName} ¡] {artists} ¡] ({albumName})";
+                                    string trackUrl = buildSpotifyUrl(item["id"]?.ToString());
+
+                                    SpotifyTrack spotifyTrack = new SpotifyTrack(songName, trackTitle, trackUrl);
+                                    tracks.Add(spotifyTrack);
+                                }
+                            }
+                        }
+                        catch { }
+                    }
+                }
                 return tracks;
             }
 
@@ -301,13 +343,12 @@ namespace Gargabot.Utils.Spotify
 
                     if (tracks.Count > 0)
                     {
-                        //default
                         trackId = (string)tracks[0]["id"];
                         foreach (var artist in tracks[0]["artists"])
                         {
                             artistIds.Add((string)artist["id"]);
                         }
-                        //Ahora, para cada uno: tomar el nombre del track, dejar solo los caracteres y transformar a minusculas y transformar los tildes, etc y si el name (tambien con esas transformaciones )contiene el nombre del track, entonces es el track
+
                         foreach (var track in tracks)
                         {
                             string trackName = (string)track["name"];

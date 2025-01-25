@@ -31,6 +31,8 @@ g!remove <index>: Remove an item from the queue.
 g!clear: Remove all items from the queue.
 g!shuffle: Shuffle the playback queue.
 g!radio: Enables radio mode (requires artist radio mode to not be active).
+g!repeat <times>: Repeats the current track a customizable amount of times.
+g!loop: Repeats the current track indefinitely.
 g!help: Show the help message.
 ```
 
@@ -103,7 +105,7 @@ Both VoiceNext and Lavalink are available on Gargabot to be used to play audio i
   "SHUFFLED": "✅ Queue shuffled.",
   "MULTIPLE_TRACKS_ADDED_TO_QUEUE": "✅ {0} tracks added to the queue.",
   "CLEARED": "✅ Queue cleared.",
-  "HELP": "List of commands:\n\n{0}play <[!music]> <search> - Search and play a song.\n{0}pause - Pause the current playback.\n{0}resume - Resume playback.\n{0}skip - Skip the current song.\n{0}stop - Stop playback.\n{0}queue - Show the playback queue.\n{0}remove <index> - Remove an item from the queue.\n{0}clear - Remove all items from the queue.\n{0}shuffle - Shuffle the playback queue.\n{0}help - Show this help message.",
+  "HELP": "List of commands:\n\n`{0}play <[!music] / [!artistradio]> <search>` - Search and play a song.\n`{0}pause` - Pause the current playback.\n`{0}resume` - Resume playback.\n`{0}skip` - Skip the current song.\n`{0}stop` - Stop playback.\n`{0}queue <page>` - Show the playback queue.\n`{0}remove <index>` - Remove an item from the queue.\n`{0}clear` - Remove all items from the queue.\n`{0}shuffle` - Shuffle the playback queue.\n`{0}repeat` <times> - Repeats the current track a customizable amount of times\n`{0}loop` - Repeats the current track indefinitely.\n`{0}help` - Show this help message.",
   "HEAVY_OPERATION_ONGOING": "❎ AN operation is already taking place. Please wait for it to finish.",
   "QUEUE_LIMIT_REACHED": "❎ The queue limit has been reached.",
   "QUEUE_MUST_BE_EMPTY_FOR_RADIO_MODE": "❎ The queue must be empty to enable radio mode.",
@@ -113,7 +115,12 @@ Both VoiceNext and Lavalink are available on Gargabot to be used to play audio i
   "NO_SPOTIFY_CREDENTIALS": "❎ Spotify credentials are not set.",
   "ARTIST_NOT_FOUND": "❎ Artist not found.",
   "ARTIST_RADIO_MODE_ENABLED": "❎ Artist radio mode is enabled.",
-  "AFK_DISCONNECT": "❎ You have been disconnected due to inactivity."
+  "AFK_DISCONNECT": "❎ You have been disconnected due to inactivity.",
+  "REPEATED": "✅ This track will be repeated {0} more times.",
+  "REPEATED_ONCE": "✅ This track will be repeated 1 more time.",
+  "LOOP": "✅ This track will be repeated indefinitely.",
+  "LOOP_DISABLED": "✅ Loop disabled.",
+  "LOOP_IS_ENABLED": "❎ Loop is enabled."
 }
 
 ```
@@ -139,7 +146,7 @@ Same file in Spanish:
   "SHUFFLED": "✅ Cola mezclada.",
   "MULTIPLE_TRACKS_ADDED_TO_QUEUE": "✅ {0} elementos agregados a la cola.",
   "CLEARED": "✅ Todos los elementos han sido eliminados.",
-  "HELP": "**Listado de comandos:**\n\n`{0}play <[!music]> <búsqueda>` - Busca y reproduce una canción.\n`{0}pause` - Pausa la reproducción actual.\n`{0}resume` - Reanuda la reproducción.\n`{0}skip` - Salta la canción actual.\n`{0}stop` - Detiene la reproducción.\n`{0}queue` - Muestra la cola de reproducción.\n`{0}remove <índice>` - Elimina un elemento de la cola.\n`{0}clear` - Elimina todos los elementos de la cola.\n`{0}shuffle` - Mezcla la cola de reproducción.\n`{0}help` - Muestra este mensaje de ayuda.",
+  "HELP": "**Listado de comandos:**\n\n`{0}play <[!music] / [!artistradio]> <búsqueda>` - Busca y reproduce una canción.\n`{0}pause` - Pausa la reproducción actual.\n`{0}resume` - Reanuda la reproducción.\n`{0}skip` - Salta la canción actual.\n`{0}stop` - Detiene la reproducción.\n`{0}queue <página>` - Muestra la cola de reproducción.\n`{0}remove <índice>` - Elimina un elemento de la cola.\n`{0}clear` - Elimina todos los elementos de la cola.\n`{0}shuffle` - Mezcla la cola de reproducción.\n`{0}repeat <veces>` - Repite el track actual un número de veces.\n`{0}loop` - Repite el track actual indefinidamente.\n`{0}help` - Muestra este mensaje de ayuda.",
   "HEAVY_OPERATION_ONGOING": "❎ Ya hay una operación en curso. Por favor, espera a que termine.",
   "QUEUE_LIMIT_REACHED": "❎ Se ha alcanzado el límite de la cola.",
   "QUEUE_MUST_BE_EMPTY_FOR_RADIO_MODE": "❎ La cola debe estar vacía para habilitar el modo radio.",
@@ -149,8 +156,14 @@ Same file in Spanish:
   "NO_SPOTIFY_CREDENTIALS": "❎ No se han configurado las credenciales de Spotify.",
   "ARTIST_NOT_FOUND": "❎ No se encontró al artista.",
   "ARTIST_RADIO_MODE_ENABLED": "❎ Modo radio de artista está habilitado",
-  "AFK_DISCONNECT": "✅ Desconectado por inactividad."
+  "AFK_DISCONNECT": "✅ Desconectado por inactividad.",
+  "REPEATED_ONCE": "✅ Se repetirá este track 1 vez más.",
+  "REPEATED": "✅ Se repetirá este track {0} veces más.",
+  "LOOP": "✅ Se repetirá este track indefinidamente.",
+  "LOOP_DISABLED": "✅ Repetición deshabilitada.",
+  "LOOP_IS_ENABLED": "❎ La repetición está habilitada."
 }
+
 
 ```
 
@@ -190,11 +203,11 @@ When the `g!play` command is triggered by an user Gargabot checks whether the sp
 - Suggest your own?
 ## Screenshots
 
-![App Screenshot](https://i.imgur.com/m7nTwZW.jpeg)
+![App Screenshot](https://i.imgur.com/zq6dftN.png)
 
 ![App Screenshot](https://i.imgur.com/dwt5pjg.jpeg)
 
-![App Screenshot](https://i.imgur.com/BWvrfrV.jpeg)
+![App Screenshot](https://i.imgur.com/DxJiYwV.png)
 ## Authors
 
 - [@Hernandarias](https://github.com/Hernandarias)

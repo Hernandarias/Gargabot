@@ -95,7 +95,15 @@ namespace Gargabot.Utils.Youtube
         {
             YoutubeClient youtube = new YoutubeClient();
             var streamManifest = await youtube.Videos.Streams.GetManifestAsync(url);
-            var streamInfo = streamManifest.GetAudioOnlyStreams().GetItemByIndex(1);
+            AudioOnlyStreamInfo streamInfo;
+            try
+            {
+                streamInfo = streamManifest.GetAudioOnlyStreams().GetItemByIndex(2);
+            }
+            catch
+            {
+                streamInfo = streamManifest.GetAudioOnlyStreams().GetItemByIndex(1);
+            }  
             return streamInfo.Url;
         }
 
