@@ -43,7 +43,7 @@ namespace Gargabot.Commands
                 return;
             }
 
-            if (ctx.Member.VoiceState == null)
+            if (ctx.Member!.VoiceState == null)
             {
                 await ctx.RespondAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.NOT_IN_A_VOICE_CHANNEL)));
                 return;
@@ -53,7 +53,7 @@ namespace Gargabot.Commands
 
             var connection = node.GetGuildConnection(ctx.Member.VoiceState.Guild);
             ulong channelId = ctx.Channel.Id;
-            DiscordChannel channel = null;
+            DiscordChannel channel = null!;
 
             if (AreBotAndCallerInTheSameChannel(ctx) || node.GetGuildConnection(ctx.Member.VoiceState.Guild) == null)
             {
@@ -238,7 +238,7 @@ namespace Gargabot.Commands
             }
 
 
-            NewLavalinkTrack nlt = perServerSession[serverId].Queue.First.Value;
+            NewLavalinkTrack nlt = perServerSession[serverId].Queue.First!.Value;
 
             perServerSession[serverId].Queue.RemoveFirst();
 
@@ -348,7 +348,7 @@ namespace Gargabot.Commands
             }
             else if (perServerSession[serverId].RadioMode || perServerSession[serverId].ArtistRadioMode)
             {
-                NewLavalinkTrack result = null;
+                NewLavalinkTrack result = new NewLavalinkTrack();
                 string videoId;
                 if (string.IsNullOrEmpty(perServerSession[serverId].LastTrackPlayed.YoutubeVideoId))
                     videoId = await YoutubeMusicController.getYoutubeMusicUrlFromQuery(perServerSession[serverId].LastTrackPlayed.FinalTitle);
@@ -367,8 +367,18 @@ namespace Gargabot.Commands
 
                 if (result != null)
                 {
-                    perServerSession[serverId].Queue.AddLast(result);
-                    perServerSession[serverId].CurrentRadioHistory.Add(result.YoutubeVideoId, true);
+                    try
+                    {
+                        perServerSession[serverId].Queue.AddLast(result);
+                    }
+                    catch
+                    {
+                        return;
+                    }
+                    if(!string.IsNullOrEmpty(result.YoutubeVideoId) && (perServerSession[serverId].RadioMode || perServerSession[serverId].ArtistRadioMode) && !perServerSession[serverId].CurrentRadioHistory.ContainsKey(result.YoutubeVideoId))
+                    {
+                        perServerSession[serverId].CurrentRadioHistory.Add(result.YoutubeVideoId, true);
+                    }
                     await PlayNextTrack(connection, serverId, perServerSession[serverId].CallerTextChannelId, false);
                 }
             }
@@ -387,7 +397,7 @@ namespace Gargabot.Commands
             {
                 var ll = ctx.Client.GetLavalink();
                 var node = ll.ConnectedNodes.Values.First();
-                var connection = node.GetGuildConnection(ctx.Member.VoiceState.Guild);
+                var connection = node.GetGuildConnection(ctx.Member!.VoiceState.Guild);
                 ulong channelId = ctx.Channel.Id;
                 DiscordChannel channel = connection.Guild.GetChannel(channelId);
                 ulong serverId = ctx.Guild.Id;
@@ -444,7 +454,7 @@ namespace Gargabot.Commands
                 }
 
                 var node = ll.ConnectedNodes.Values.First();
-                var connection = node.GetGuildConnection(ctx.Member.VoiceState.Guild);
+                var connection = node.GetGuildConnection(ctx.Member!.VoiceState.Guild);
                 ulong channelId = ctx.Channel.Id;
                 DiscordChannel channel = connection.Guild.GetChannel(channelId);
 
@@ -495,7 +505,10 @@ namespace Gargabot.Commands
                 }
 
                 perServerSession[serverId].RadioMode = true;
-                perServerSession[serverId].CurrentRadioHistory = new Dictionary<string, bool>();
+                perServerSession[serverId].CurrentRadioHistory = new Dictionary<string, bool>
+                {
+                    { perServerSession[serverId].LastTrackPlayed.YoutubeVideoId, true }
+                };
                 await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.RADIO_MODE_ENABLED)));
             }
         }
@@ -507,7 +520,7 @@ namespace Gargabot.Commands
             {
                 var ll = ctx.Client.GetLavalink();
                 var node = ll.ConnectedNodes.Values.First();
-                var connection = node.GetGuildConnection(ctx.Member.VoiceState.Guild);
+                var connection = node.GetGuildConnection(ctx.Member!.VoiceState.Guild);
                 ulong channelId = ctx.Channel.Id;
                 ulong serverId = ctx.Guild.Id;
 
@@ -554,7 +567,7 @@ namespace Gargabot.Commands
 
         private bool AreBotAndCallerInTheSameChannel(CommandContext ctx)
         {
-            if (ctx.Member.VoiceState == null)
+            if (ctx.Member!.VoiceState == null)
             {
                 return false;
             }
@@ -562,7 +575,7 @@ namespace Gargabot.Commands
             {
                 var ll = ctx.Client.GetLavalink();
                 var node = ll.ConnectedNodes.Values.First();
-                var connection = node.GetGuildConnection(ctx.Member.VoiceState.Channel.Guild);
+                var connection = node.GetGuildConnection(ctx.Member.VoiceState.Channel!.Guild);
                 return connection != null && connection.Channel == ctx.Member.VoiceState.Channel;
             }
         }
@@ -584,9 +597,7 @@ namespace Gargabot.Commands
                         page = int.Parse(pageStr);
                     }
                 }
-                catch(Exception e)
-                {
-                }
+                catch { }
 
                 await Queue(ctx.Client, ctx.Guild.Id, ctx.Channel.Id, page);
 
@@ -664,7 +675,7 @@ namespace Gargabot.Commands
 
                 var lava = ctx.Client.GetLavalink();
                 var node = lava.ConnectedNodes.Values.First();
-                var connection = node.GetGuildConnection(ctx.Member.VoiceState.Guild);
+                var connection = node.GetGuildConnection(ctx.Member!.VoiceState.Guild);
                 ulong channelId = ctx.Channel.Id;
                 DiscordChannel channel = connection.Guild.GetChannel(channelId);     
                 if (position <= perServerSession[serverId].Queue.Count)
@@ -677,7 +688,7 @@ namespace Gargabot.Commands
                         {
                             perServerSession[serverId].Queue.Remove(t);
 
-                            if (channel != null)
+                            if (channel != null!)
                             {
                                 await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.DELETED, t.FinalTitle)));
                             }
@@ -709,7 +720,7 @@ namespace Gargabot.Commands
 
                 var lava = ctx.Client.GetLavalink();
                 var node = lava.ConnectedNodes.Values.First();
-                var connection = node.GetGuildConnection(ctx.Member.VoiceState.Guild);
+                var connection = node.GetGuildConnection(ctx.Member!.VoiceState.Guild);
                 ulong channelId = ctx.Channel.Id;
                 DiscordChannel channel = connection.Guild.GetChannel(channelId);
 
@@ -896,9 +907,7 @@ namespace Gargabot.Commands
                     }
 
                 }
-                catch (Exception e)
-                {
-                }
+                catch { }
 
                 
                 if (botParams.perServerQueueLimit < (repetitions + perServerSession[serverId].Queue.Count))
@@ -916,7 +925,7 @@ namespace Gargabot.Commands
 
                 var lava = ctx.Client.GetLavalink();
                 var node = lava.ConnectedNodes.Values.First();
-                var connection = node.GetGuildConnection(ctx.Member.VoiceState.Guild);
+                var connection = node.GetGuildConnection(ctx.Member!.VoiceState.Guild);
                 ulong channelId = ctx.Channel.Id;
                 DiscordChannel channel = connection.Guild.GetChannel(channelId);
 

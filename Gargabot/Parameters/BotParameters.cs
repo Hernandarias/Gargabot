@@ -32,7 +32,7 @@ namespace Gargabot.Parameters
             var json = File.ReadAllText(filePath);
             try
             {
-                return JsonConvert.DeserializeObject<BotParameters>(json);
+                return JsonConvert.DeserializeObject<BotParameters>(json)!;
             }
             catch
             {

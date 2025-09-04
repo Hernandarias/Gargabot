@@ -20,7 +20,7 @@ namespace Gargabot.Messages
             var json = File.ReadAllText(filePath);
             try
             {
-                messages = JsonConvert.DeserializeObject<Dictionary<string, string>>(json);
+                messages = JsonConvert.DeserializeObject<Dictionary<string, string>>(json)!;
             }
             catch
             {
@@ -29,8 +29,8 @@ namespace Gargabot.Messages
 
             foreach(var message in Enum.GetValues(typeof(Message)))
             {
-                if (!messages.ContainsKey(message.ToString()))
-                    throw new MessageNotFound(message.ToString());
+                if (!messages.ContainsKey(message.ToString()!))
+                    throw new MessageNotFound(message.ToString()!);
             }
             
         }

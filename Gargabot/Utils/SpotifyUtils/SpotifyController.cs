@@ -49,7 +49,7 @@ namespace Gargabot.Utils.Spotify
                     string responseBody = await response.Content.ReadAsStringAsync();
                     JObject responseJSON = JObject.Parse(responseBody);
                     if (responseJSON != null)
-                        return (string)responseJSON["access_token"];
+                        return (string)responseJSON["access_token"]!;
                     else
                         return "";
 
@@ -114,23 +114,23 @@ namespace Gargabot.Utils.Spotify
 
                     var jsonObject = JObject.Parse(responseBody);
 
-                    foreach (var item in jsonObject["items"])
+                    foreach (var item in jsonObject["items"]!)
                     {
                         var track = item["track"];
-                        if(string.IsNullOrEmpty(track.ToString()))
+                        if(string.IsNullOrEmpty(track!.ToString()))
                         {
                             tracks.Clear();
                             break;
                         }
                         var songName = track.Value<string>("name");
-                        var artists = track["artists"].Select(a => a.Value<string>("name")).ToList();
+                        var artists = track["artists"]!.Select(a => a.Value<string>("name")).ToList();
                         var album = track["album"];
 
-                        string albumName = album.Value<string>("name");
+                        string albumName = album!.Value<string>("name")!;
 
                         string trackTitle = songName + " ¡] " + string.Join(", ", artists) + $" ¡] ({albumName})" ;
                         
-                        SpotifyTrack spotifyTrack = new SpotifyTrack(songName, trackTitle, buildSpotifyUrl(track.Value<string>("id")));
+                        SpotifyTrack spotifyTrack = new SpotifyTrack(songName!, trackTitle, buildSpotifyUrl(track.Value<string>("id")!));
                         tracks.Add(spotifyTrack);
                     }
 
@@ -144,47 +144,56 @@ namespace Gargabot.Utils.Spotify
             }
             else
             {
-                if (tracks.Count <= 0)
-                {
-                    string api = $"https://api.spotifydown.com/tracks/playlist/{playlistId}";
-
-                    using (HttpClient client = new HttpClient())
-                    {
-                        try
-                        {
-                            client.DefaultRequestHeaders.Add("Referer", "https://spotifydown.com/");
-                            client.DefaultRequestHeaders.Add("Origin", "https://spotifydown.com");
-
-                            HttpResponseMessage response = await client.GetAsync(api);
-                            response.EnsureSuccessStatusCode();
-
-                            string responseContent = await response.Content.ReadAsStringAsync();
-                            var jsonResponse = JObject.Parse(responseContent);
-
-                            if (jsonResponse["success"]?.Value<bool>() == true)
-                            {
-                                var trackList = jsonResponse["trackList"];
-                                foreach (var item in trackList)
-                                {
-                                    string songName = item["title"]?.ToString();
-                                    string artists = item["artists"]?.ToString();
-                                    string albumName = item["album"]?.ToString();
-
-                                    string trackTitle = $"{songName} ¡] {artists} ¡] ({albumName})";
-                                    string trackUrl = buildSpotifyUrl(item["id"]?.ToString());
-
-                                    SpotifyTrack spotifyTrack = new SpotifyTrack(songName, trackTitle, trackUrl);
-                                    tracks.Add(spotifyTrack);
-                                }
-                            }
-                        }
-                        catch { }
-                    }
-                }
                 return tracks;
             }
 
         }
+
+        public async Task<string> GetTrackISRC(string trackId)
+        {
+            string token = await GetToken();
+
+            if (token == null)
+                return "";
+
+            string endpoint = "https://api.spotify.com/v1/tracks/" + trackId;
+
+            using (HttpClient client = new HttpClient())
+            {
+                var request = new HttpRequestMessage
+                {
+                    Method = HttpMethod.Get,
+                    RequestUri = new Uri(endpoint)
+                };
+                request.Headers.Add("Authorization", "Bearer " + token);
+
+                HttpResponseMessage response = await client.SendAsync(request);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    string responseBody = await response.Content.ReadAsStringAsync();
+                    JObject responseJson = JObject.Parse(responseBody);
+
+                    if (responseJson == null)
+                        return "";
+
+                    if (responseJson["external_ids"] == null)
+                        return "";
+
+                    if (responseJson["external_ids"]!["isrc"] == null)
+                        return "";
+
+                    string isrc = (string)responseJson["external_ids"]!["isrc"]!;
+
+                    return isrc;
+                }
+                else
+                {
+                    return "";
+                }
+            }
+        }
+
 
         public async Task<List<SpotifyTrack>> GetTracksFromAlbum(string albumUrl)
         {
@@ -235,17 +244,17 @@ namespace Gargabot.Utils.Spotify
 
                     var jsonObject = JObject.Parse(responseBody);
 
-                    string albumName = (string)jsonObject["name"];
+                    string albumName = (string)jsonObject["name"]!;
 
 
-                    foreach (var item in jsonObject["tracks"]["items"])
+                    foreach (var item in jsonObject["tracks"]!["items"]!)
                     {
                         var songName = item.Value<string>("name");
-                        var artists = item["artists"].Select(a => a.Value<string>("name")).ToList();
+                        var artists = item["artists"]!.Select(a => a.Value<string>("name")).ToList();
 
                         string trackTitle = songName + " ¡] " + string.Join(", ", artists) + $" ¡] ({albumName})";
 
-                        SpotifyTrack spotifyTrack = new SpotifyTrack(songName, trackTitle, buildSpotifyUrl(item.Value<string>("id")));
+                        SpotifyTrack spotifyTrack = new SpotifyTrack(songName!, trackTitle, buildSpotifyUrl(item.Value<string>("id")!));
                         tracks.Add(spotifyTrack);
 
                     }
@@ -290,19 +299,19 @@ namespace Gargabot.Utils.Spotify
 
                     string trackSearchTitle = "";
 
-                    string trackTitle = (string)responseJson["name"];
+                    string trackTitle = (string)responseJson["name"]!;
 
                     trackSearchTitle += trackTitle + " ¡] ";
 
-                    JArray artistsArray = (JArray)responseJson["artists"];
+                    JArray artistsArray = (JArray)responseJson["artists"]!;
                     foreach (JObject artist in artistsArray)
                     {
-                        string artistName = (string)artist["name"];
+                        string artistName = (string)artist["name"]!;
                         trackSearchTitle += artistName + ", ";
                     }
 
-                    var album = responseJson["album"];
-                    string albumName = album.Value<string>("name");
+                    var album = responseJson["album"]!;
+                    string albumName = album.Value<string>("name")!;
 
                     trackSearchTitle = trackSearchTitle.Substring(0, trackSearchTitle.Length - 2) + $" ¡] ({albumName})";
                     return trackSearchTitle;
@@ -339,28 +348,28 @@ namespace Gargabot.Utils.Spotify
                     JObject responseJson = JObject.Parse(responseBody);
                     if (responseJson == null)
                         return new Tuple<string, List<string>>("", []);
-                    JArray tracks = (JArray)responseJson["tracks"]["items"];
+                    JArray tracks = (JArray)responseJson["tracks"]!["items"]!;
 
                     if (tracks.Count > 0)
                     {
-                        trackId = (string)tracks[0]["id"];
-                        foreach (var artist in tracks[0]["artists"])
+                        trackId = (string)tracks[0]["id"]!;
+                        foreach (var artist in tracks[0]["artists"]!)
                         {
-                            artistIds.Add((string)artist["id"]);
+                            artistIds.Add((string)artist["id"]!);
                         }
 
                         foreach (var track in tracks)
                         {
-                            string trackName = (string)track["name"];
+                            string trackName = (string)track["name"]!;
                             string trackNameNormalized = new string(trackName.Where(c => char.IsLetterOrDigit(c)).ToArray()).ToLower();
                             string nameNormalized = new string(name.Where(c => char.IsLetterOrDigit(c)).ToArray()).ToLower();
                             if (trackNameNormalized.Contains(nameNormalized))
                             {
-                                trackId = (string)track["id"];
+                                trackId = (string)track["id"]!;
                                 artistIds = new List<string>();
-                                foreach (var artist in track["artists"])
+                                foreach (var artist in track["artists"]!)
                                 {
-                                    artistIds.Add((string)artist["id"]);
+                                    artistIds.Add((string)artist["id"]!);
                                 }
                                 break;
                             }
@@ -396,10 +405,10 @@ namespace Gargabot.Utils.Spotify
                     JObject responseJson = JObject.Parse(responseBody);
                     if (responseJson == null)
                         return new Tuple<string, string>("", "");
-                    JArray artists = (JArray)responseJson["artists"]["items"];
+                    JArray artists = (JArray)responseJson["artists"]!["items"]!;
                     if (artists.Count > 0)
                     {
-                        artistId = (string)artists[0]["id"];
+                        artistId = (string)artists[0]["id"]!;
                     }
                 }
             }   
@@ -432,23 +441,26 @@ namespace Gargabot.Utils.Spotify
                     JObject responseJson = JObject.Parse(responseBody);
                     if (responseJson == null)
                         return "";
-                    JArray tracks = (JArray)responseJson["tracks"];
+                    JArray tracks = (JArray)responseJson["tracks"]!;
                     if (tracks.Count > 0)
                     {
                         Random random = new Random();
                         int randomIndex = random.Next(tracks.Count);
-                        return (string)tracks[randomIndex]["id"];
+                        return (string)tracks[randomIndex]["id"]!;
                     }
                 }
             }
             return "";
         }
 
-        public async Task<List<string>> GetTopTracksFromArtistId(string artistId)
+        public async Task<Tuple<List<string>, List<string>>> GetTopTracksFromArtistId(string artistId)
         {
             string token = await GetToken();
             string endpoint = "https://api.spotify.com/v1/artists/" + artistId + "/top-tracks";
             List<string> trackTitles = new List<string>();
+            List<string> trackIds = new List<string>();
+            Tuple<List<string>, List<string>> result = new Tuple<List<string>, List<string>>(trackIds, trackTitles);
+
             using (HttpClient client = new HttpClient())
             {
                 var request = new HttpRequestMessage
@@ -466,38 +478,41 @@ namespace Gargabot.Utils.Spotify
                     JObject responseJson = JObject.Parse(responseBody);
 
                     if (responseJson == null)
-                        return trackTitles;
+                        return result;
 
-                    JArray tracks = (JArray)responseJson["tracks"];
+                    JArray tracks = (JArray)responseJson["tracks"]!;
                     if (tracks.Count > 0)
                     {
                         foreach (var track in tracks)
                         {
                             string trackSearchTitle = "";
 
-                            string trackTitle = (string)track["name"];
+                            string trackTitle = (string)track["name"]!;
                             trackSearchTitle += trackTitle + " ¡] ";
 
-                            JArray artistsArray = (JArray)track["artists"];
+                            JArray artistsArray = (JArray)track["artists"]!;
                             foreach (JObject artist in artistsArray)
                             {
-                                string artistName = (string)artist["name"];
+                                string artistName = (string)artist["name"]!;
                                 trackSearchTitle += artistName + ", ";
                             }
 
-                            JObject album = (JObject)track["album"];
-                            string albumName = album.Value<string>("name");
+                            JObject album = (JObject)track["album"]!;
+                            string albumName = album.Value<string>("name")!;
 
                             trackSearchTitle = trackSearchTitle.Substring(0, trackSearchTitle.Length - 2) + $" ¡] ({albumName})";
 
                             trackTitles.Add(trackSearchTitle);
+                            trackIds.Add((string)track["id"]!);
 
                         }
                     }
                 }
             }
-            return trackTitles;
+            return result;
         }
+
+
 
         public string GetTrackId(string trackUrl)
         {

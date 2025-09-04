@@ -23,7 +23,7 @@ namespace Gargabot.Utils
                 UseShellExecute = false
             });
 
-            yt.WaitForExit();
+            yt!.WaitForExit();
 
             string rawOutput = yt.StandardOutput.ReadToEnd().Trim();
 
@@ -45,7 +45,7 @@ namespace Gargabot.Utils
                 UseShellExecute = false
             });
 
-            yt.WaitForExit();
+            yt!.WaitForExit();
 
             return yt.StandardOutput.ReadToEnd().Trim();
         }
@@ -60,7 +60,7 @@ namespace Gargabot.Utils
                 UseShellExecute = false
             });
 
-            yt.WaitForExit();
+            yt!.WaitForExit();
 
             string rawOutput = yt.StandardOutput.ReadToEnd().Trim();
 

@@ -25,9 +25,10 @@ namespace Gargabot.Utils
 
         public static bool matchYoutubeUrl(string input)
         {
-            Regex regex = new Regex(@"^(https?://)?(www\.)?(youtube\.com|youtu\.be|music\.youtube\.com)/watch\?v=[A-Za-z0-9_-]{11}(&(?!(list=))[A-Za-z0-9_-]+=[A-Za-z0-9_%]*)*$");
+            Regex regex = new Regex(@"^(https?://)?(www\.)?(youtube\.com|youtu\.be|music\.youtube\.com)/(watch\?v=[A-Za-z0-9_-]{11}(&(?!(list=))[A-Za-z0-9_-]+=[A-Za-z0-9_%]*)*|shorts/[A-Za-z0-9_-]{11})$");
             return regex.IsMatch(input);
         }
+
 
         public static bool matchYoutubePlaylistUrl(string input)
         {
@@ -57,15 +58,33 @@ namespace Gargabot.Utils
             return regex.IsMatch(input);
         }
 
+        public static bool matchDeezerTrackUrl(string input)
+        {
+
+            Regex regex = new Regex(@"https:\/\/www\.deezer\.com(?:\/[a-z]{2})?\/track\/\d+", RegexOptions.IgnoreCase);
+            return regex.IsMatch(input);
+
+        }
+
+        public static bool matchDeezerShortLinkUrl(string input)
+        {
+            Regex regex = new Regex(@"^(https:\/\/dzr\.page\.link\/[a-zA-Z0-9]+|https:\/\/link\.deezer\.com\/s\/[a-zA-Z0-9]+|https:\/\/link\.deezer\.com\/\?.+)$", RegexOptions.IgnoreCase);
+            return regex.IsMatch(input);
+        }
+
+
         public static string SanitizeYoutubeUrl(string input)
         {
             Uri uri = new Uri(input);
             string videoId = string.Empty;
-
-            if (uri.Host.Contains("youtube.com"))
+            if (input.Contains("youtube.com/shorts/"))
+            {
+                videoId = uri.AbsolutePath.Replace("/shorts/", "");
+            }
+            else if (uri.Host.Contains("youtube.com"))
             {
                 var queryParams = System.Web.HttpUtility.ParseQueryString(uri.Query);
-                videoId = queryParams["v"];
+                videoId = queryParams["v"]!;
             }
             else if (uri.Host.Contains("youtu.be"))
             {

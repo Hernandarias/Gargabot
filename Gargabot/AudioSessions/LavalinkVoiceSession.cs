@@ -27,6 +27,7 @@ namespace Gargabot.AudioSessions
             RadioMode = false;
             artistRadioMode = false;
             CallerTextChannelId = 0;
+
         }
 
         public LinkedList<NewLavalinkTrack> Queue { get => queue; }

@@ -1,11 +1,11 @@
 # Gargabot
 
-Gargabot is a music playing bot for Discord servers built using DSharpPlus in .NET 8
+Gargabot is a music playing bot for Discord servers built using DSharpPlus in .NET 9
 
 
 ## Features
 
-- Ability to play tracks from YouTube and Spotify
+- Ability to play tracks from YouTube, Spotify and Deezer
 - Ability to stream Twitch broadcasts
 - Ability to customize several tracks to be played when the bot joins a voice channel
 - Low RAM and CPU usage
@@ -40,7 +40,7 @@ g!help: Show the help message.
 
 ### Requirements:
 
-- [.NET 8](https://dotnet.microsoft.com/es-es/download/dotnet/8.0)
+- [.NET 9](https://dotnet.microsoft.com/es-es/download/dotnet/9.0)
 - Either [Lavalink 3.7.12](https://github.com/lavalink-devs/Lavalink/releases/tag/3.7.12) to use Lavalink as playback method or both [ffmpeg](https://ffmpeg.org/download.html) and [yt-dlp](https://github.com/yt-dlp/yt-dlp/releases) to use VoiceNext
 
 ### Choosing a playback method:
@@ -185,22 +185,24 @@ There are two ways of playing audio on Gargabot:
 
 - Lavalink: This uses the [DSharpPlus.Lavalink](https://www.nuget.org/packages/DSharpPlus.Lavalink/) package for connecting to Lavalink from .NET. Although this package is now deprecated it stills does the job since Lavalink is only used to play audio and nothing else (unless `soundcloud` is chosen as the search engine which, as previously stated, won't be getting any support as it relies entirely on Lavaplayer's implementation of it).
 
-### Spotify, YouTube and YouTube Music integration:
+### Deezer, Spotify, YouTube and YouTube Music integration:
 
 When the `g!play` command is triggered by an user Gargabot checks whether the specified query is a url or plain text.
 
 - If the query is plain text and the `[!music]` clause wasn't used then a search in YouTube is executed using the [YoutubeExplode](https://github.com/Tyrrrz/YoutubeExplode) package. The first result is the one getting played.
-- If the query is plain text and the `[!music]` clause was used then Gargabot searches that track in YouTube Music using reverse engineering to get as close as possible to the user's request. Note that this assumes the track exists in YouTube Music as a song and not only as a music or lyrics video; also, there's no guarantee that the gotten result is a perfect match to the user's request.
+- If the query is plain text and the `[!music]` clause was used then Gargabot searches that track in YouTube Music using reverse engineering to get as close as possible to the user's request. Note that this assumes the track exists in YouTube Music as a song and not only as a music or lyrics video; also, there's no guarantee that the search's result is a perfect match to the user's request.
 - If the query is plain text and the `[!artistradio]` clause was used then Gargabot will search that artist using the [Spotify's public API](https://developer.spotify.com/documentation/web-api) and load tracks from that artist until the `g!stop` command is used.
 - If the query is a YouTube video or playlist url then [YoutubeExplode](https://github.com/Tyrrrz/YoutubeExplode) is used to handle those requests.
 - If the query is a Spotify song, playlist or album url then the [Spotify's public API](https://developer.spotify.com/documentation/web-api) is consumed to get each track information. Once that information was retrieved then Gargabot searches that track using the YouTube Music search module.
+- If the query is a Deezer track url then [DeezNET](https://www.nuget.org/packages/DeezNET) is used to handle those requests.
 
 ## To-do list
 
 - Permissions system
 - Apple Music integration
-- Deezer integration
+- Further Deezer integration
 - Suggest your own?
+
 ## Screenshots
 
 ![App Screenshot](https://i.imgur.com/zq6dftN.png)
@@ -208,6 +210,9 @@ When the `g!play` command is triggered by an user Gargabot checks whether the sp
 ![App Screenshot](https://i.imgur.com/dwt5pjg.jpeg)
 
 ![App Screenshot](https://i.imgur.com/DxJiYwV.png)
+
+![App Screenshot](https://i.imgur.com/geP6ysx.png)
+
 ## Authors
 
 - [@Hernandarias](https://github.com/Hernandarias)

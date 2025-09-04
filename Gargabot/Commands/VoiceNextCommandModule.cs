@@ -33,7 +33,7 @@ namespace Gargabot.Commands
             perServerSession[serverId].Joined = false;
             if (!AreBotAndCallerInTheSameChannel(ctx))
             {
-                if (ctx.Member.VoiceState == null)
+                if (ctx.Member!.VoiceState == null)
                 {
                     await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.NOT_IN_A_VOICE_CHANNEL)));
                     return;
@@ -42,7 +42,7 @@ namespace Gargabot.Commands
                 {
                     if (connection == null)
                     {
-                        await ctx.Member.VoiceState.Channel.ConnectAsync();
+                        await ctx.Member.VoiceState.Channel!.ConnectAsync();
                         perServerSession[serverId].Joined = true;
                     }
                     else
@@ -104,7 +104,7 @@ namespace Gargabot.Commands
                 ulong channelId = ctx.Channel.Id;
                 DiscordChannel channel = ctx.Guild.GetChannel(channelId);
                 await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.STOPPED)));
-                connection.Disconnect();
+                connection!.Disconnect();
 
                 perServerSession.Remove(serverId);
 
@@ -125,7 +125,7 @@ namespace Gargabot.Commands
                 DiscordChannel channel = ctx.Guild.GetChannel(channelId);
                 perServerSession[serverId].IsPaused = true;
                 await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.PAUSED)));
-                connection.Pause();
+                connection!.Pause();
 
             }
         }
@@ -142,7 +142,7 @@ namespace Gargabot.Commands
                 DiscordChannel channel = ctx.Guild.GetChannel(channelId);
                 perServerSession[serverId].IsPaused = false;
                 await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.RESUMED)));
-                await connection.ResumeAsync();
+                await connection!.ResumeAsync();
             }
         }
 
@@ -249,7 +249,7 @@ namespace Gargabot.Commands
             var transmit = connection.GetTransmitSink();
             perServerSession[serverId].Cts = new CancellationTokenSource();
 
-            Audio a = perServerSession[serverId].Queue.First.Value;
+            Audio a = perServerSession[serverId].Queue.First!.Value;
             perServerSession[serverId].Queue.RemoveFirst();
 
             bool liveStream = RegexUtils.matchM3U8Url(a.Url);
@@ -288,7 +288,7 @@ namespace Gargabot.Commands
         {
             var vnext = ctx.Client.GetVoiceNext();
             var connection = vnext.GetConnection(ctx.Guild);
-            return connection!=null && connection.TargetChannel == ctx.Member.VoiceState.Channel;
+            return connection!=null && connection.TargetChannel == ctx.Member!.VoiceState.Channel!;
         }
 
         private void UpdateAudioTitle(Audio a)

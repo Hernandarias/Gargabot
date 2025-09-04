@@ -29,7 +29,7 @@ namespace Gargabot.Utils
                 }
             });
 
-            return ffmpeg.StandardOutput.BaseStream;
+            return ffmpeg!.StandardOutput.BaseStream;
         }
 
         public static Stream ConvertYoutube(string url, CancellationToken ct)
@@ -51,7 +51,7 @@ namespace Gargabot.Utils
                 }
             });
 
-            return ffmpeg.StandardOutput.BaseStream;
+            return ffmpeg!.StandardOutput.BaseStream;
         }
 
         public static Stream ConvertStream(string streamUrl, CancellationToken ct)
@@ -72,7 +72,7 @@ namespace Gargabot.Utils
                 }
             });
 
-            return ffmpeg.StandardOutput.BaseStream;
+            return ffmpeg!.StandardOutput.BaseStream;
         }
     }
 }
