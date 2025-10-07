@@ -13,12 +13,10 @@
     <PackageReference Include="DSharpPlus.CommandsNext" Version="5.0.0-nightly-02152" />
     <PackageReference Include="DSharpPlus.Interactivity" Version="5.0.0-nightly-02152" />
     <PackageReference Include="DSharpPlus.Lavalink" Version="4.4.6" />
-    <PackageReference Include="DSharpPlus.Rest" Version="5.0.0-nightly-02152" />
-    <PackageReference Include="DSharpPlus.SlashCommands" Version="5.0.0-nightly-02152" />
     <PackageReference Include="DSharpPlus.VoiceNext" Version="5.0.0-nightly-02152" />
-    <PackageReference Include="HtmlAgilityPack" Version="1.12.2" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.12.4" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.0-preview.7.25380.108" />
-    <PackageReference Include="YoutubeExplode" Version="6.5.4" />
+    <PackageReference Include="YoutubeExplode" Version="6.5.5" />
   </ItemGroup>
 
 </Project>
