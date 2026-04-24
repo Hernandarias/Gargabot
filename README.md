@@ -1,18 +1,19 @@
 # Gargabot
 
-Gargabot is a music playing bot for Discord servers built using DSharpPlus in .NET 9
+Gargabot is a music playing bot for Discord servers built using DSharpPlus in .NET 10
 
 
 ## Features
 
 - Ability to play tracks from YouTube, Spotify and Deezer
-- Ability to stream Twitch broadcasts
+- Ability to stream FM radio stations
 - Ability to customize several tracks to be played when the bot joins a voice channel
 - Low RAM and CPU usage
-- On-going operations limit to avoid excessive resource usage
+- Ongoing operations limit to avoid excessive resource usage
 - Multi-server support
 - Search and queue management
 - Playback control
+- Volume control
 - Radio mode with unlimited playback
 - Artist radio mode
 - Fully customizable parameters like the bot's prefix, playback method, etc
@@ -21,15 +22,20 @@ Gargabot is a music playing bot for Discord servers built using DSharpPlus in .N
 ## Commands (the prefix is customizable)
 
 ```
-g!play <[!music] / [!artistradio]> <search>: Search and play a track. Use [!music] before the search query to specify searching on YouTube Music. If nothing specified, it searches on YouTube. If the query is a link, it can be a YouTube link (video or playlist) or a Spotify link (song, album, or playlist). Any other links will be handled by Lavaplayer if chosen as the playback method. Using [!artistradio] enables nonstop playback of the chosen artist.
+g!play <[!music] / [!artistradio]> <search>: Search and play a track. Use [!music] before the search query to specify searching on YouTube Music. If nothing specified, it searches on YouTube. If the query is a link, it can be a YouTube link (video or playlist), a Spotify link (song, album, or playlist) or a Deezer link (song). Any other links will be handled by Lavaplayer. Using [!artistradio] enables nonstop playback of the chosen artist.
+g!playnext <[!music] / [!artistradio]> <search>: Search and add a track to the front of the queue.
+g!fmradio <search>: Search and play an online radio station (live stream).
 g!pause: Pause the current playback.
 g!resume: Resume playback.
 g!skip: Skip the current song.
-g!stop: Stop playback.
+g!stop: Stop playback and disconnect the bot.
 g!queue <page>: Show the playback queue.
+g!move <from> <to>: Move an item in the queue.
+g!reverse: Reverse the playback queue.
 g!remove <index>: Remove an item from the queue.
 g!clear: Remove all items from the queue.
 g!shuffle: Shuffle the playback queue.
+g!volume <0-200>: Adjust the volume.
 g!radio: Enables radio mode (requires artist radio mode to not be active).
 g!repeat <times>: Repeats the current track a customizable amount of times.
 g!loop: Repeats the current track indefinitely.
@@ -40,19 +46,8 @@ g!help: Show the help message.
 
 ### Requirements:
 
-- [.NET 9](https://dotnet.microsoft.com/es-es/download/dotnet/9.0)
-- Either [Lavalink 3.7.12](https://github.com/lavalink-devs/Lavalink/releases/tag/3.7.12) to use Lavalink as playback method or both [ffmpeg](https://ffmpeg.org/download.html) and [yt-dlp](https://github.com/yt-dlp/yt-dlp/releases) to use VoiceNext
-
-### Choosing a playback method:
-
-Both VoiceNext and Lavalink are available on Gargabot to be used to play audio in voice channels. However, Gargabot's VoiceNext module is deprecated and won't be getting any updates.
-
-#### Comparison chart:
-
-| Method | External apps needed | YouTube search support| YouTube Music search support | Spotify search support | Queue limit | On-going operations limit | Radio mode | Artist radio mode |
-|------------------|--------------|------------|---------|-----------|------| ----- | ----- | ----- |
-| Lavalink            | 1       | Videos and playlists (both from links and text queries)         | Text queries       | Songs, playlists and albums links         | Yes    | Yes   | Yes    | Yes   | 
-| VoiceNext            | 2          | Only videos (both from links and text queries)         | No       | No         | No    | No | No    | No |
+- [.NET 10](https://dotnet.microsoft.com/es-es/download/dotnet/10.0)
+- [Lavalink 4.2.2](https://github.com/lavalink-devs/Lavalink/releases/tag/4.2.2)
 
 ### Configuration files:
 
@@ -61,11 +56,8 @@ Both VoiceNext and Lavalink are available on Gargabot to be used to play audio i
 {
   "discord_token": "YOUR_DISCORD_TOKEN", #Your Discord bot token
   "prefix": "g!", #This customizes every Gargabot command prefix
-  "ffmpeg_path": "YOUR_FFMPEG.EXE_PATH",
-  "yt_dlp_path": "YOUR_YT_DLP.EXE_PATH",
-  "lavalinkOrVoiceNext": "lavalink", #Options are "lavalink" or "voicenext". If "lavalink" is chosen then there's no need to fill in the previous two variables (ffmpeg_path and yt_dlp_path)
   "perServerQueueLimit": 50, #Per-server queue limit
-  "lavalinkCredentials": { #There's no need to fill this data if "voicenext". This data is customizable in Lavalink's application.yml
+  "lavalinkCredentials": { #This data is customizable in Lavalink's application.yml
     "host": "127.0.0.1",
     "port": 7717,
     "password": "YOUR_LAVALINK_PASSWORD",
@@ -105,8 +97,8 @@ Both VoiceNext and Lavalink are available on Gargabot to be used to play audio i
   "SHUFFLED": "✅ Queue shuffled.",
   "MULTIPLE_TRACKS_ADDED_TO_QUEUE": "✅ {0} tracks added to the queue.",
   "CLEARED": "✅ Queue cleared.",
-  "HELP": "List of commands:\n\n`{0}play <[!music] / [!artistradio]> <search>` - Search and play a song.\n`{0}pause` - Pause the current playback.\n`{0}resume` - Resume playback.\n`{0}skip` - Skip the current song.\n`{0}stop` - Stop playback.\n`{0}queue <page>` - Show the playback queue.\n`{0}remove <index>` - Remove an item from the queue.\n`{0}clear` - Remove all items from the queue.\n`{0}shuffle` - Shuffle the playback queue.\n`{0}repeat` <times> - Repeats the current track a customizable amount of times\n`{0}loop` - Repeats the current track indefinitely.\n`{0}help` - Show this help message.",
-  "HEAVY_OPERATION_ONGOING": "❎ AN operation is already taking place. Please wait for it to finish.",
+  "HELP": "List of commands:\n\n`{0}play <[!music] / [!artistradio]> <search>` - Search and play a song.\n`{0}playnext <[!music] / [!artistradio]> <search>` - Search and add a song to the front of the queue.\n`{0}pause` - Pause the current playback.\n`{0}resume` - Resume playback.\n`{0}skip` - Skip the current song.\n`{0}stop` - Stop playback.\n`{0}queue <page>` - Show the playback queue.\n`{0}move <from> <to>` - Move an item in the queue.\n`{0}reverse` - Reverse the playback queue.\n`{0}remove <index>` - Remove an item from the queue.\n`{0}clear` - Remove all items from the queue.\n`{0}shuffle` - Shuffle the playback queue.\n`{0}volume <0-200>` - Adjust the volume.\n`{0}repeat` <times> - Repeats the current track a customizable amount of times\n`{0}loop` - Repeats the current track indefinitely.\n`{0}help` - Show this help message.",
+  "HEAVY_OPERATION_ONGOING": "❎ An operation is already taking place. Please wait for it to finish.",
   "QUEUE_LIMIT_REACHED": "❎ The queue limit has been reached.",
   "QUEUE_MUST_BE_EMPTY_FOR_RADIO_MODE": "❎ The queue must be empty to enable radio mode.",
   "RADIO_MODE_IS_ENABLED": "❎ Radio mode is enabled and therefore, you cannot use this command.",
@@ -120,7 +112,18 @@ Both VoiceNext and Lavalink are available on Gargabot to be used to play audio i
   "REPEATED_ONCE": "✅ This track will be repeated 1 more time.",
   "LOOP": "✅ This track will be repeated indefinitely.",
   "LOOP_DISABLED": "✅ Loop disabled.",
-  "LOOP_IS_ENABLED": "❎ Loop is enabled."
+  "LOOP_IS_ENABLED": "❎ Loop is enabled.",
+  "VOLUME_OUT_OF_RANGE": "❎ Volume must be between {0} and {1}.",
+  "VOLUME_SET": "✅ Volume set to {0}%.",
+  "VOLUME_ALREADY_AT": "✅ Volume is already at {0}%.",
+  "MOVED_IN_QUEUE": "✅ Moved '{0}' from position {1} to position {2}.",
+  "QUEUE_REVERSED": "✅ Queue reversed.",
+  "EMPTY_FMRADIO_QUERY": "❎ You must provide a search query for fmradio.",
+  "NO_RADIOS_FOUND_FOR_SEARCH": "❎ No radio stations were found for: {0}.",
+  "FMRADIO_SELECTION_EXPIRED": "❎ The fmradio selection has expired.",
+  "FMRADIO_SELECTION_NOT_FOR_YOU": "❎ This fmradio selection does not belong to you.",
+  "RADIO_STREAM_UNAVAILABLE": "❎ Could not load the radio stream: {0}.",
+  "SELECT_FMRADIO": "🖱️ Select a radio."
 }
 
 ```
@@ -146,7 +149,7 @@ Same file in Spanish:
   "SHUFFLED": "✅ Cola mezclada.",
   "MULTIPLE_TRACKS_ADDED_TO_QUEUE": "✅ {0} elementos agregados a la cola.",
   "CLEARED": "✅ Todos los elementos han sido eliminados.",
-  "HELP": "**Listado de comandos:**\n\n`{0}play <[!music] / [!artistradio]> <búsqueda>` - Busca y reproduce una canción.\n`{0}pause` - Pausa la reproducción actual.\n`{0}resume` - Reanuda la reproducción.\n`{0}skip` - Salta la canción actual.\n`{0}stop` - Detiene la reproducción.\n`{0}queue <página>` - Muestra la cola de reproducción.\n`{0}remove <índice>` - Elimina un elemento de la cola.\n`{0}clear` - Elimina todos los elementos de la cola.\n`{0}shuffle` - Mezcla la cola de reproducción.\n`{0}repeat <veces>` - Repite el track actual un número de veces.\n`{0}loop` - Repite el track actual indefinidamente.\n`{0}help` - Muestra este mensaje de ayuda.",
+  "HELP": "**Listado de comandos:**\n\n`{0}play <[!music] / [!artistradio]> <búsqueda>` - Busca y reproduce una canción.\n`{0}playnext <[!music] / [!artistradio]> <búsqueda>` - Busca y agrega una canción al inicio de la cola.\n`{0}fmradio <búsqueda>` - Busca radios para reproducir.\n`{0}pause` - Pausa la reproducción actual.\n`{0}resume` - Reanuda la reproducción.\n`{0}skip` - Salta la canción actual.\n`{0}stop` - Detiene la reproducción.\n`{0}queue <página>` - Muestra la cola de reproducción.\n`{0}move <posición inicial> <posición final>` - Mueve un elemento de la cola.\n`{0}reverse` - Invierte la cola de reproducción.\n`{0}remove <índice>` - Elimina un elemento de la cola.\n`{0}clear` - Elimina todos los elementos de la cola.\n`{0}shuffle` - Mezcla la cola de reproducción.\n`{0}volume <0-200>` - Ajusta el volumen.\n`{0}repeat <veces>` - Repite el track actual un número de veces.\n`{0}loop` - Repite el track actual indefinidamente.\n`{0}help` - Muestra este mensaje de ayuda.",
   "HEAVY_OPERATION_ONGOING": "❎ Ya hay una operación en curso. Por favor, espera a que termine.",
   "QUEUE_LIMIT_REACHED": "❎ Se ha alcanzado el límite de la cola.",
   "QUEUE_MUST_BE_EMPTY_FOR_RADIO_MODE": "❎ La cola debe estar vacía para habilitar el modo radio.",
@@ -161,33 +164,40 @@ Same file in Spanish:
   "REPEATED": "✅ Se repetirá este track {0} veces más.",
   "LOOP": "✅ Se repetirá este track indefinidamente.",
   "LOOP_DISABLED": "✅ Repetición deshabilitada.",
-  "LOOP_IS_ENABLED": "❎ La repetición está habilitada."
+  "LOOP_IS_ENABLED": "❎ La repetición está habilitada.",
+  "VOLUME_OUT_OF_RANGE": "❎ El volumen debe estar entre {0} y {1}.",
+  "VOLUME_SET": "✅ Volumen ajustado a {0}%.",
+  "VOLUME_ALREADY_AT": "✅ El volumen ya está en {0}%.",
+  "MOVED_IN_QUEUE": "✅ Se movió '{0}' desde la posición {1} hasta la posición {2}.",
+  "QUEUE_REVERSED": "✅ Se invirtió la cola.",
+  "EMPTY_FMRADIO_QUERY": "❎ Tenés que indicar una búsqueda para fmradio.",
+  "NO_RADIOS_FOUND_FOR_SEARCH": "❎ No se encontraron radios para: {0}.",
+  "FMRADIO_SELECTION_EXPIRED": "❎ La selección de fmradio expiró.",
+  "FMRADIO_SELECTION_NOT_FOR_YOU": "❎ Esta selección de fmradio no te pertenece.",
+  "RADIO_STREAM_UNAVAILABLE": "❎ No se pudo cargar la radio: {0}.",
+  "SELECT_FMRADIO": "🖱️ Selecciona una radio."
 }
-
-
 ```
 
-### Executing Gargabot:
+### Running Gargabot:
 
-Once the configuration files were customized you can run Gargabot by running the `Gargabot.exe` executable. Note that if Lavalink is chosen as the playback method it should be running on the credentials specified on the `applications.json` file before executing Gargabot.
+Once the configuration files have been customized, you can run Gargabot by executing `Gargabot.exe`. Lavalink must be running on the credentials specified on the `applications.json` file before executing Gargabot.
 
 ## How does Gargabot work?
 
 ### Discord integration:
 
-This is done entirely by using the [DSharpPlus](https://github.com/DSharpPlus/DSharpPlus/) library in its latest version. More information on it can be found in its [documentation](https://dsharpplus.github.io/DSharpPlus/)
+This is done entirely by using the [DSharpPlus](https://github.com/DSharpPlus/DSharpPlus/) library in its latest version. More information can be found in its [documentation](https://dsharpplus.github.io/DSharpPlus/)
 
 ### Audio playback:
 
-There are two ways of playing audio on Gargabot:
+Gargabot uses Lavalink as the playback method:
 
-- VoiceNext `(deprecated)`: This uses the [DSharpPlus.VoiceNext](https://www.nuget.org/packages/DSharpPlus.VoiceNext/) package for playing audio in a voice channel. It requires an external app [(ffmpeg)](https://ffmpeg.org/download.html) to actually play the audio and another app to get working streaming links [(yt-dlp)](https://github.com/yt-dlp/yt-dlp/releases). This approach is pretty complicated to maintain and, therefore, won't be getting any fixes or updates.
-
-- Lavalink: This uses the [DSharpPlus.Lavalink](https://www.nuget.org/packages/DSharpPlus.Lavalink/) package for connecting to Lavalink from .NET. Although this package is now deprecated it stills does the job since Lavalink is only used to play audio and nothing else (unless `soundcloud` is chosen as the search engine which, as previously stated, won't be getting any support as it relies entirely on Lavaplayer's implementation of it).
+- Lavalink: Gargabot uses the [Lavalink4NET](https://github.com/lavalink4net/Lavalink4NET) library to connect to Lavalink.
 
 ### Deezer, Spotify, YouTube and YouTube Music integration:
 
-When the `g!play` command is triggered by an user Gargabot checks whether the specified query is a url or plain text.
+When the `g!play` command is triggered by a user Gargabot checks whether the specified query is a url or plain text.
 
 - If the query is plain text and the `[!music]` clause wasn't used then a search in YouTube is executed using the [YoutubeExplode](https://github.com/Tyrrrz/YoutubeExplode) package. The first result is the one getting played.
 - If the query is plain text and the `[!music]` clause was used then Gargabot searches that track in YouTube Music using reverse engineering to get as close as possible to the user's request. Note that this assumes the track exists in YouTube Music as a song and not only as a music or lyrics video; also, there's no guarantee that the search's result is a perfect match to the user's request.
@@ -212,6 +222,8 @@ When the `g!play` command is triggered by an user Gargabot checks whether the sp
 ![App Screenshot](https://i.imgur.com/DxJiYwV.png)
 
 ![App Screenshot](https://i.imgur.com/geP6ysx.png)
+
+![App Screenshot](https://i.imgur.com/sFBX22I.png)
 
 ## Authors
 
