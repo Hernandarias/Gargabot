@@ -1,16 +1,7 @@
 ﻿using Gargabot.Parameters;
 using Gargabot.Utils.DeezerUtils;
 using Gargabot.Utils.Spotify;
-using Newtonsoft.Json;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Xml.Linq;
 using YoutubeExplode;
 using YoutubeExplode.Common;
 
@@ -18,6 +9,17 @@ namespace Gargabot.Utils.Youtube
 {
     public static class YoutubeMusicController
     {
+        private static readonly YoutubeClient _youtube = new YoutubeClient();
+        private static readonly HttpClient _http = CreateHttpClient();
+
+        private static HttpClient CreateHttpClient()
+        {
+            HttpClient client = new HttpClient();
+            client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:108.0) Gecko/20100101 Firefox/108.0");
+
+            return client;
+        }
+
         public static async Task<string> getYoutubeMusicUrlFromCompleteTrackName(string search, bool secondTry)
         {
             string url = "";
@@ -94,7 +96,7 @@ namespace Gargabot.Utils.Youtube
             string url = "";
             try
             {
-                YoutubeClient yc = new YoutubeClient();
+                YoutubeClient yc = _youtube;
                 var searchResults = await yc.Search.GetVideosAsync(isrc);
                 if (searchResults.Count() > 0)
                 {
@@ -154,7 +156,7 @@ namespace Gargabot.Utils.Youtube
         {
             try
             {
-                using var client = new HttpClient();
+                using var client = _http;
                 client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:108.0) Gecko/20100101 Firefox/108.0");
 
                 return await client.GetStringAsync($"https://music.youtube.com/search?q={Uri.EscapeDataString(search)}");
@@ -173,7 +175,7 @@ namespace Gargabot.Utils.Youtube
             try
             {
 
-                YoutubeClient yc = new YoutubeClient();
+                YoutubeClient yc = _youtube;
                 string playlistId = "RD";
                 if (history.Count>0)
                 {
@@ -256,13 +258,13 @@ namespace Gargabot.Utils.Youtube
             string recommendationUrl = "";
             try
             {
-                YoutubeClient yc = new YoutubeClient();
+                YoutubeClient yc = _youtube;
                 var videos = await yc.Playlists.GetVideosAsync("RD" + videoId);
 
                 if (videos.Count > 0)
                 {
                     var visitedIndices = new HashSet<int>();
-                    SpotifyController sutils = new SpotifyController(BotParameters.LoadFromJson(BotParameters.GetAppSettingsPath()).spotifyCredentials);
+                    SpotifyController sutils = new SpotifyController(BotParameters.LoadFromJson(BotParameters.GetAppSettingsPath()).spotifyCredentials!);
 
                     while (visitedIndices.Count < videos.Count)
                     {

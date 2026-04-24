@@ -1,13 +1,5 @@
-﻿using AngleSharp.Dom;
-using Gargabot.Utils.SpotifyUtils;
-using Newtonsoft.Json;
+﻿using Gargabot.Utils.SpotifyUtils;
 using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using YoutubeExplode.Playlists;
 
 namespace Gargabot.Utils.Spotify
 {
@@ -28,8 +20,8 @@ namespace Gargabot.Utils.Spotify
                 var parameters = new Dictionary<string, string>
                 {
                     { "grant_type", "client_credentials" },
-                    { "client_id", spotifyCredentials.clientId },
-                    { "client_secret",spotifyCredentials.clientSecret }
+                    { "client_id", spotifyCredentials.clientId! },
+                    { "client_secret",spotifyCredentials.clientSecret! }
                 };
 
                 var formContent = new FormUrlEncodedContent(parameters);

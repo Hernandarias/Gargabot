@@ -1,11 +1,5 @@
 ﻿using DeezNET;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics.Metrics;
-using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace Gargabot.Utils.DeezerUtils
 {
@@ -36,7 +30,7 @@ namespace Gargabot.Utils.DeezerUtils
                 dt.Url = BuildTrackURL((long)trackData["id"]!);
                 dt.Isrc = trackData["isrc"]!.ToString();
             }
-            catch (Exception ex) { }
+            catch { }
             return dt;
         }
 

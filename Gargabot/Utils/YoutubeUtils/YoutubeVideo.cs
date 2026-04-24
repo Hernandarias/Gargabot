@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Gargabot.Utils.Youtube
+﻿namespace Gargabot.Utils.Youtube
 {
     public class YoutubeVideo
     {

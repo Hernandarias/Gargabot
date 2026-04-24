@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Gargabot.Messages
+﻿namespace Gargabot.Messages
 {
     public enum Message
     {
@@ -40,7 +34,17 @@ namespace Gargabot.Messages
         REPEATED_ONCE,
         LOOP,
         LOOP_DISABLED,
-        LOOP_IS_ENABLED
-
+        LOOP_IS_ENABLED,
+        VOLUME_OUT_OF_RANGE, // args: {0} - min volume, {1} - max volume
+        VOLUME_SET, // args: {0} - current volume
+        VOLUME_ALREADY_AT, // args: {0} - current volume
+        MOVED_IN_QUEUE, // args: {0} - track title, {1} - from position, {2} - to position
+        QUEUE_REVERSED,
+        EMPTY_FMRADIO_QUERY,
+        NO_RADIOS_FOUND_FOR_SEARCH, // args: {0}
+        FMRADIO_SELECTION_EXPIRED,
+        FMRADIO_SELECTION_NOT_FOR_YOU,
+        RADIO_STREAM_UNAVAILABLE, // args: {0},
+        SELECT_FMRADIO
     }
 }

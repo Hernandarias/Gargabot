@@ -1,10 +1,5 @@
 ﻿using DSharpPlus;
 using DSharpPlus.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Gargabot.Utils.DiscordUtils
 {
@@ -91,6 +86,8 @@ namespace Gargabot.Utils.DiscordUtils
             });
             buttons.Add(new DiscordButtonComponent[]
             {
+                 new DiscordButtonComponent(ButtonStyle.Primary, "volume_down_button", "🔉", false),
+                new DiscordButtonComponent(ButtonStyle.Primary, "volume_up_button", "🔊", false),
                 new DiscordButtonComponent(DSharpPlus.ButtonStyle.Danger, "stop_button", "🛑", false)
             });
             return buttons;

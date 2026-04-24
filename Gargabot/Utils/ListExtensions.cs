@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-public static class ListExtensions
+﻿public static class ListExtensions
 {
     private static Random random = new Random();
 
