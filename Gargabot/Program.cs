@@ -14,7 +14,6 @@ namespace Gargabot
     internal class Program
     {
         public delegate Task ButtonActionDelegate(DiscordClient client, ComponentInteractionCreateEventArgs e);
-
         public static event ButtonActionDelegate? OnPauseButtonPressed;
         public static event ButtonActionDelegate? OnSkipButtonPressed;
         public static event ButtonActionDelegate? OnLoopButtonPressed;
@@ -24,7 +23,6 @@ namespace Gargabot
         public static event ButtonActionDelegate? OnVolumeDownButtonPressed;
         public static event ButtonActionDelegate? OnVolumeUpButtonPressed;
         public static event ButtonActionDelegate? OnFmRadioSelectPressed;
-
         public static DiscordClient Discord { get; private set; } = null!;
         public static IAudioService AudioService { get; private set; } = null!;
         public static IServiceProvider Services { get; private set; } = null!;
@@ -37,7 +35,6 @@ namespace Gargabot
             {
                 return;
             }
-
             Discord = new DiscordClient(new DiscordConfiguration()
             {
                 Token = botParams.discord_token,
@@ -49,13 +46,11 @@ namespace Gargabot
             try
             {
                 var services = new ServiceCollection();
-
                 services.AddSingleton(Discord);
                 services.AddLogging(logging =>
                 {
                     logging.SetMinimumLevel(LogLevel.Information);
                 });
-
                 services.AddLavalink();
                 services.ConfigureLavalink(config =>
                 {
@@ -65,7 +60,6 @@ namespace Gargabot
                 });
 
                 Services = services.BuildServiceProvider();
-
                 var commands = Discord.UseCommandsNext(new CommandsNextConfiguration
                 {
                     EnableMentionPrefix = true,
@@ -76,14 +70,12 @@ namespace Gargabot
                     EnableDefaultHelp = false,
                     Services = Services,
                 });
-
                 Discord.ComponentInteractionCreated += async (client, e) =>
                 {
                     if (e.Id.StartsWith("fmradio_select:"))
                     {
                         if (OnFmRadioSelectPressed is not null)
                             await OnFmRadioSelectPressed.Invoke(client, e);
-
                         return;
                     }
                     switch (e.Id)
@@ -92,7 +84,6 @@ namespace Gargabot
                             if (OnPauseButtonPressed is not null)
                                 await OnPauseButtonPressed.Invoke(client, e);
                             break;
-
                         case "skip_button":
                             if (OnSkipButtonPressed is not null)
                                 await OnSkipButtonPressed.Invoke(client, e);
@@ -102,7 +93,6 @@ namespace Gargabot
                             if (OnLoopButtonPressed is not null)
                                 await OnLoopButtonPressed.Invoke(client, e);
                             break;
-
                         case "stop_button":
                             if (OnStopButtonPressed is not null)
                                 await OnStopButtonPressed.Invoke(client, e);
@@ -112,7 +102,6 @@ namespace Gargabot
                             if (OnQueueButtonPressed is not null)
                                 await OnQueueButtonPressed.Invoke(client, e);
                             break;
-
                         case "shuffle_button":
                             if (OnShuffleButtonPressed is not null)
                                 await OnShuffleButtonPressed.Invoke(client, e);
@@ -121,7 +110,6 @@ namespace Gargabot
                             if (OnVolumeDownButtonPressed is not null)
                                 await OnVolumeDownButtonPressed.Invoke(client, e);
                             break;
-
                         case "volume_up_button":
                             if (OnVolumeUpButtonPressed is not null)
                                 await OnVolumeUpButtonPressed.Invoke(client, e);
@@ -133,7 +121,6 @@ namespace Gargabot
                 commands.RegisterCommands<LavalinkCommandModule>();
 
                 await Discord.ConnectAsync();
-
                 AudioService = Services.GetRequiredService<IAudioService>();
                 await AudioService.StartAsync();
 
@@ -143,7 +130,7 @@ namespace Gargabot
             {
                 throw new InvalidLavalinkSession(ex.ToString());
             }
-                   
+
         }
     }
 }

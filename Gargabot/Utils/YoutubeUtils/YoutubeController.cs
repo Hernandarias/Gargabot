@@ -98,7 +98,7 @@ namespace Gargabot.Utils.Youtube
             }
             catch
             {
-                streamInfo = streamManifest.GetAudioOnlyStreams().GetItemByIndex(2);
+                streamInfo = streamManifest.GetAudioOnlyStreams().OrderByDescending(x => x.Bitrate).Skip(1).FirstOrDefault()!;
             }
             return streamInfo.Url;
         }

@@ -154,6 +154,7 @@ namespace Gargabot.Commands
                     search = artistIdAndTrack.Item2;
                     perServerSession[serverId].ArtistRadioMode = true;
                     perServerSession[serverId].CurrentRadioHistory = new Dictionary<string, bool>();
+                    perServerSession[serverId].RadioSeedVideoId = null;
                 }
                 else
                 {
@@ -299,18 +300,17 @@ namespace Gargabot.Commands
 
         private async Task PlayNextTrack(QueuedLavalinkPlayer player, ulong serverId, ulong channelId, bool joinAudio)
         {
-            if (!perServerSession.ContainsKey(serverId) ||
-                perServerSession[serverId].Queue.Count == 0)
+            if (!perServerSession.TryGetValue(serverId, out var session) || session.Queue.Count == 0)
             {
                 return;
             }
 
-            if (perServerSession[serverId].IsStartingPlayback)
+            if (session.IsStartingPlayback)
             {
                 return;
             }
 
-            perServerSession[serverId].IsStartingPlayback = true;
+            session.IsStartingPlayback = true;
 
             try
             {
@@ -325,10 +325,10 @@ namespace Gargabot.Commands
                     return;
                 }
 
-                if (perServerSession[serverId].IsPaused)
+                if (session.IsPaused)
                 {
                     await player.ResumeAsync();
-                    perServerSession[serverId].IsPaused = false;
+                    session.IsPaused = false;
                 }
 
                 if (player.CurrentTrack is not null)
@@ -336,13 +336,26 @@ namespace Gargabot.Commands
                     return;
                 }
 
-                NewLavalinkTrack nlt = perServerSession[serverId].Queue.First!.Value;
+                bool currentJoinAudio = joinAudio;
 
-                if (!joinAudio)
+                while (session.Queue.Count > 0 && player.CurrentTrack is null)
                 {
-                    if (RegexUtils.matchSpotifySongUrl(nlt.Url))
+                    NewLavalinkTrack queuedTrack = session.Queue.First!.Value;
+                    NewLavalinkTrack nlt = queuedTrack;
+
+                    if ((session.RadioMode || session.ArtistRadioMode) && string.IsNullOrWhiteSpace(session.RadioSeedVideoId) && !string.IsNullOrWhiteSpace(nlt.YoutubeVideoId))
                     {
-                        var tuple = await LavalinkController.loadLavalinkTrack(Program.AudioService, nlt.Url, true, perServerSession[serverId].Queue.Count);
+                        session.RadioSeedVideoId = nlt.YoutubeVideoId;
+                    }
+
+                    if (!currentJoinAudio && RegexUtils.matchSpotifySongUrl(nlt.Url))
+                    {
+                        var tuple = await LavalinkController.loadLavalinkTrack(Program.AudioService, nlt.Url, true, session.Queue.Count);
+
+                        if (!perServerSession.TryGetValue(serverId, out var currentSession) || !ReferenceEquals(currentSession, session))
+                        {
+                            return;
+                        }
 
                         if (tuple.Item1.Count > 0)
                         {
@@ -350,111 +363,165 @@ namespace Gargabot.Commands
                         }
                     }
 
-                    DiscordEmbedBuilder embed;
-                    string initialTimestamp = "";
-                    if (!string.IsNullOrEmpty(nlt.Duration))
-                        initialTimestamp = "00:00:00";
-                    if (string.IsNullOrEmpty(nlt.ThumbnailUrl))
-                        embed = CustomEmbedBuilder.CreateEmbed(nlt.Url, nlt.FinalTitle, messageManager.GetMessage(Message.PLAYING_ON, guild.Name), $"{initialTimestamp} - {nlt.Duration}");
-                    else
-                        embed = CustomEmbedBuilder.CreateEmbed(nlt.Url, nlt.FinalTitle, messageManager.GetMessage(Message.PLAYING_ON, guild.Name), $"{initialTimestamp} - {nlt.Duration}", nlt.ThumbnailUrl);
-
-                    var messageWithButtons = CustomEmbedBuilder.CreatePlayEmbed(embed);
-                    await channel.SendMessageAsync(messageWithButtons);
-
-                    perServerSession[serverId].LastTrackPlayed = new NewLavalinkTrack(nlt);
-                }
-
-                perServerSession[serverId].IsPlayingJoinAudio = joinAudio;
-
-                if (nlt.Track is null)
-                {
-                    string realAudioURL = "";
-                    const int maxRetries = 15;
-                    int retryCount = 0;
-                    bool success = false;
-
-                    while (retryCount < maxRetries && !success)
+                    if ((session.RadioMode || session.ArtistRadioMode) && string.IsNullOrWhiteSpace(session.RadioSeedVideoId) && !string.IsNullOrWhiteSpace(nlt.YoutubeVideoId))
                     {
-                        try
-                        {
-                            realAudioURL = await YoutubeController.getAudioRealUrl(nlt.Url);
-                            success = true;
-                        }
-                        catch (Exception ex)
-                        {
-                            retryCount++;
+                        session.RadioSeedVideoId = nlt.YoutubeVideoId;
+                    }
 
-                            if (retryCount >= maxRetries)
+                    if (nlt.Track is null)
+                    {
+                        if (string.IsNullOrWhiteSpace(nlt.Url))
+                        {
+                            Console.WriteLine($"Invalid track URL on guild {serverId}. Skipping to next track.");
+
+                            if (session.Queue.Count > 0 && ReferenceEquals(session.Queue.First!.Value, queuedTrack))
                             {
-                                if (perServerSession[serverId].Queue.Count > 1 || perServerSession[serverId].RadioMode || perServerSession[serverId].ArtistRadioMode)
+                                session.Queue.RemoveFirst();
+                            }
+
+                            currentJoinAudio = false;
+                            continue;
+                        }
+
+                        string realAudioURL = "";
+                        const int maxRetries = 15;
+                        int retryCount = 0;
+                        bool success = false;
+
+                        while (retryCount < maxRetries && !success)
+                        {
+                            try
+                            {
+                                realAudioURL = await YoutubeController.getAudioRealUrl(nlt.Url);
+                                success = true;
+                            }
+                            catch (Exception ex)
+                            {
+                                retryCount++;
+
+                                if (retryCount >= maxRetries)
                                 {
-                                    Console.WriteLine($"Error getting real audio URL for {nlt.Url} after {maxRetries} retries. Skipping to next track.");
-                                    Console.WriteLine(ex);
+                                    if (session.Queue.Count > 1 || session.RadioMode || session.ArtistRadioMode)
+                                    {
+                                        Console.WriteLine($"Error getting real audio URL for {nlt.Url} after {maxRetries} retries. Skipping to next track.");
+                                        Console.WriteLine(ex);
 
-                                    perServerSession[serverId].Queue.RemoveFirst();
+                                        if (session.Queue.Count > 0 && ReferenceEquals(session.Queue.First!.Value, queuedTrack))
+                                        {
+                                            session.Queue.RemoveFirst();
+                                        }
 
-                                    await Task.Delay(500);
-                                    await PlayNextTrack(player, serverId, channelId, false);
+                                        currentJoinAudio = false;
+                                        break;
+                                    }
+                                    else
+                                    {
+                                        await DisconnectFromVoiceChannel(player, channel, serverId);
+                                        return;
+                                    }
                                 }
-                                else
-                                {
-                                    await DisconnectFromVoiceChannel(player, channel, serverId);
-                                }
-
-                                return;
                             }
                         }
+
+                        if (!success)
+                        {
+                            continue;
+                        }
+
+                        nlt.Track = await LavalinkController.loadLavalinkTrack(realAudioURL, Program.AudioService, TrackSearchMode.None);
+
+                        if (!perServerSession.TryGetValue(serverId, out var currentSession) || !ReferenceEquals(currentSession, session))
+                        {
+                            return;
+                        }
                     }
 
-                    if (!success)
+                    if (nlt.Track is null)
                     {
-                        return;
+                        if (session.Queue.Count > 1 || session.RadioMode || session.ArtistRadioMode)
+                        {
+                            if (session.Queue.Count > 0 && ReferenceEquals(session.Queue.First!.Value, queuedTrack))
+                            {
+                                session.Queue.RemoveFirst();
+                            }
+
+                            currentJoinAudio = false;
+                            continue;
+                        }
+                        else
+                        {
+                            await DisconnectFromVoiceChannel(player, channel, serverId);
+                            return;
+                        }
                     }
 
-                    nlt.Track = await LavalinkController.loadLavalinkTrack(realAudioURL, Program.AudioService, TrackSearchMode.None);
-                }
-
-                if (nlt.Track is null)
-                {
-                    if (perServerSession[serverId].Queue.Count > 1 || perServerSession[serverId].RadioMode || perServerSession[serverId].ArtistRadioMode)
+                    if (!currentJoinAudio)
                     {
-                        perServerSession[serverId].Queue.RemoveFirst();
-                        await PlayNextTrack(player, serverId, channelId, false);
-                    }
-                    else
-                    {
-                        await DisconnectFromVoiceChannel(player, channel, serverId);
+                        DiscordEmbedBuilder embed;
+                        string initialTimestamp = "";
+                        if (!string.IsNullOrEmpty(nlt.Duration))
+                            initialTimestamp = "00:00:00";
+                        if (string.IsNullOrEmpty(nlt.ThumbnailUrl))
+                            embed = CustomEmbedBuilder.CreateEmbed(nlt.Url, nlt.FinalTitle, messageManager.GetMessage(Message.PLAYING_ON, guild.Name), $"{initialTimestamp} - {nlt.Duration}");
+                        else
+                            embed = CustomEmbedBuilder.CreateEmbed(nlt.Url, nlt.FinalTitle, messageManager.GetMessage(Message.PLAYING_ON, guild.Name), $"{initialTimestamp} - {nlt.Duration}", nlt.ThumbnailUrl);
+
+                        var messageWithButtons = CustomEmbedBuilder.CreatePlayEmbed(embed);
+                        await channel.SendMessageAsync(messageWithButtons);
+
+                        if (!perServerSession.TryGetValue(serverId, out var currentSession) || !ReferenceEquals(currentSession, session))
+                        {
+                            return;
+                        }
+
+                        session.LastTrackPlayed = new NewLavalinkTrack(nlt);
                     }
 
+                    session.IsPlayingJoinAudio = currentJoinAudio;
+
+                    if (!string.IsNullOrEmpty(nlt.YoutubeVideoId) && (session.RadioMode || session.ArtistRadioMode))
+                    {
+                        if (session.CurrentRadioHistory is null)
+                        {
+                            session.CurrentRadioHistory = new Dictionary<string, bool>();
+                        }
+
+                        if (string.IsNullOrWhiteSpace(session.RadioSeedVideoId))
+                        {
+                            session.RadioSeedVideoId = nlt.YoutubeVideoId;
+                        }
+
+                        if (!session.CurrentRadioHistory.ContainsKey(nlt.YoutubeVideoId))
+                        {
+                            session.CurrentRadioHistory.Add(nlt.YoutubeVideoId, true);
+                        }
+                    }
+
+                    await player.PlayAsync(nlt.Track);
+
+                    if (session.Queue.Count > 0 && ReferenceEquals(session.Queue.First!.Value, queuedTrack))
+                    {
+                        session.Queue.RemoveFirst();
+                    }
+
+                    EnsurePlaybackWatcher(player, serverId, channelId);
                     return;
                 }
 
-                if (!string.IsNullOrEmpty(nlt.YoutubeVideoId) && (perServerSession[serverId].RadioMode || perServerSession[serverId].ArtistRadioMode) && !perServerSession[serverId].CurrentRadioHistory!.ContainsKey(nlt.YoutubeVideoId))
+                if ((session.RadioMode || session.ArtistRadioMode) && player.CurrentTrack is null)
                 {
-                    perServerSession[serverId].CurrentRadioHistory!.Add(nlt.YoutubeVideoId, true);
+                    EnsurePlaybackWatcher(player, serverId, channelId);
                 }
-
-                await player.PlayAsync(nlt.Track);
-
-                // recién ahora lo sacamos de la cola
-                if (perServerSession.ContainsKey(serverId) &&
-                    perServerSession[serverId].Queue.Count > 0)
-                {
-                    perServerSession[serverId].Queue.RemoveFirst();
-                }
-
-                EnsurePlaybackWatcher(player, serverId, channelId);
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error playing track: " + JsonSerializer.Serialize(perServerSession[serverId].Queue.FirstOrDefault()) + ex);
+                Console.WriteLine("Error playing track: " + JsonSerializer.Serialize(session.Queue.FirstOrDefault()) + ex);
             }
             finally
             {
-                if (perServerSession.ContainsKey(serverId))
+                if (perServerSession.TryGetValue(serverId, out var currentSession) && ReferenceEquals(currentSession, session))
                 {
-                    perServerSession[serverId].IsStartingPlayback = false;
+                    currentSession.IsStartingPlayback = false;
                 }
             }
         }
@@ -475,14 +542,19 @@ namespace Gargabot.Commands
             {
                 await Task.Delay(500);
 
-                while (perServerSession.ContainsKey(serverId) && activePlayers.TryGetValue(serverId, out var currentPlayer) && ReferenceEquals(currentPlayer, player))
+                if (!perServerSession.TryGetValue(serverId, out var session))
                 {
-                    while (perServerSession.ContainsKey(serverId) && activePlayers.TryGetValue(serverId, out currentPlayer) && ReferenceEquals(currentPlayer, player) && (player.CurrentTrack is not null || perServerSession[serverId].IsPaused))
+                    return;
+                }
+
+                while (perServerSession.TryGetValue(serverId, out var currentSession) && ReferenceEquals(currentSession, session) && activePlayers.TryGetValue(serverId, out var currentPlayer) && ReferenceEquals(currentPlayer, player))
+                {
+                    while (perServerSession.TryGetValue(serverId, out currentSession) && ReferenceEquals(currentSession, session) && activePlayers.TryGetValue(serverId, out currentPlayer) && ReferenceEquals(currentPlayer, player) && (player.CurrentTrack is not null || session.IsPaused))
                     {
                         await Task.Delay(500);
                     }
 
-                    if (!perServerSession.ContainsKey(serverId))
+                    if (!perServerSession.TryGetValue(serverId, out currentSession) || !ReferenceEquals(currentSession, session))
                     {
                         return;
                     }
@@ -492,7 +564,7 @@ namespace Gargabot.Commands
                         return;
                     }
 
-                    if (perServerSession[serverId].HeavyOperationOngoing)
+                    if (session.HeavyOperationOngoing)
                     {
                         await Task.Delay(250);
                         continue;
@@ -518,64 +590,128 @@ namespace Gargabot.Commands
 
         private async Task OnPlaybackFinished(QueuedLavalinkPlayer player, ulong serverId, ulong channelId)
         {
-            if (!perServerSession.ContainsKey(serverId))
+            if (!perServerSession.TryGetValue(serverId, out var session))
             {
                 return;
             }
 
-            if (perServerSession[serverId].IsStartingPlayback)
+            if (session.IsStartingPlayback)
             {
                 return;
             }
 
-            perServerSession[serverId].IsPlayingJoinAudio = false;
+            session.IsPlayingJoinAudio = false;
 
-            if (perServerSession[serverId].Loop)
+            if (session.Loop)
             {
-                perServerSession[serverId].Queue.AddFirst(new NewLavalinkTrack(perServerSession[serverId].LastTrackPlayed!));
+                if (session.LastTrackPlayed is null)
+                {
+                    return;
+                }
 
-                await PlayNextTrack(player, serverId, perServerSession[serverId].CallerTextChannelId, false);
+                session.Queue.AddFirst(new NewLavalinkTrack(session.LastTrackPlayed));
+                await PlayNextTrack(player, serverId, session.CallerTextChannelId, false);
             }
-            else if (perServerSession[serverId].Queue.Count > 0)
+            else if (session.Queue.Count > 0)
             {
-                await PlayNextTrack(player, serverId, perServerSession[serverId].CallerTextChannelId, false);
+                await PlayNextTrack(player, serverId, session.CallerTextChannelId, false);
             }
-            else if (perServerSession[serverId].RadioMode || perServerSession[serverId].ArtistRadioMode)
+            else if (session.RadioMode || session.ArtistRadioMode)
             {
-                NewLavalinkTrack result = new();
-
-                string videoId;
-                if (string.IsNullOrEmpty(perServerSession[serverId].LastTrackPlayed!.YoutubeVideoId))
+                if (session.CurrentRadioHistory is null)
                 {
-                    videoId = await YoutubeMusicController.getYoutubeMusicUrlFromQuery(perServerSession[serverId].LastTrackPlayed!.FinalTitle);
-                }
-                else
-                {
-                    videoId = perServerSession[serverId].LastTrackPlayed!.YoutubeVideoId;
+                    session.CurrentRadioHistory = new Dictionary<string, bool>();
                 }
 
-                if (perServerSession[serverId].RadioMode)
+                string videoId = session.RadioSeedVideoId ?? "";
+
+                if (string.IsNullOrWhiteSpace(videoId) && session.LastTrackPlayed is not null && !string.IsNullOrWhiteSpace(session.LastTrackPlayed.YoutubeVideoId))
                 {
-                    result = await LavalinkController.getNextRadioTrack(Program.AudioService, videoId, perServerSession[serverId].CurrentRadioHistory!);
-                }
-                else if (perServerSession[serverId].ArtistRadioMode)
-                {
-                    result = await LavalinkController.getNextArtistRadioTrack(Program.AudioService, videoId, perServerSession[serverId].ArtistRadioArtistId!, perServerSession[serverId].CurrentRadioHistory!);
+                    videoId = session.LastTrackPlayed.YoutubeVideoId;
                 }
 
-                if (result is not null)
+                if (string.IsNullOrWhiteSpace(videoId) && session.LastTrackPlayed is not null)
                 {
-                    perServerSession[serverId].Queue.AddLast(result);
+                    string seedUrl = await YoutubeMusicController.getYoutubeMusicUrlFromQuery(session.LastTrackPlayed.FinalTitle);
 
-                    if (!string.IsNullOrEmpty(result.YoutubeVideoId) && !perServerSession[serverId].CurrentRadioHistory!.ContainsKey(result.YoutubeVideoId))
+                    if (!perServerSession.TryGetValue(serverId, out var currentSession) || !ReferenceEquals(currentSession, session))
                     {
-                        perServerSession[serverId].CurrentRadioHistory!.Add(result.YoutubeVideoId, true);
+                        return;
                     }
 
-                    await PlayNextTrack(player, serverId, perServerSession[serverId].CallerTextChannelId, false);
+                    if (!string.IsNullOrWhiteSpace(seedUrl))
+                    {
+                        YoutubeVideo seedVideo = await YoutubeController.getVideoInfo(seedUrl);
+
+                        if (!perServerSession.TryGetValue(serverId, out currentSession) || !ReferenceEquals(currentSession, session))
+                        {
+                            return;
+                        }
+
+                        if (seedVideo is not null)
+                        {
+                            videoId = seedVideo.Id;
+                        }
+                    }
                 }
+
+                if (string.IsNullOrWhiteSpace(videoId))
+                {
+                    Console.WriteLine($"Unable to resolve radio seed on guild {serverId}.");
+                    await player.DisconnectAsync();
+                    CleanupSession(serverId);
+                    return;
+                }
+
+                session.RadioSeedVideoId = videoId;
+                if (!session.CurrentRadioHistory.ContainsKey(videoId))
+                {
+                    session.CurrentRadioHistory.Add(videoId, true);
+                }
+
+                NewLavalinkTrack? result = null;
+                const int maxRadioRetries = 3;
+
+                for (int x = 0; x < maxRadioRetries && result is null; x++)
+                {
+                    if (session.RadioMode)
+                    {
+                        result = await LavalinkController.getNextRadioTrack(Program.AudioService, videoId, session.CurrentRadioHistory);
+                    }
+                    else if (session.ArtistRadioMode && !string.IsNullOrWhiteSpace(session.ArtistRadioArtistId))
+                    {
+                        result = await LavalinkController.getNextArtistRadioTrack(Program.AudioService, videoId, session.ArtistRadioArtistId, session.CurrentRadioHistory);
+                    }
+
+                    if (!perServerSession.TryGetValue(serverId, out var currentSession) || !ReferenceEquals(currentSession, session))
+                    {
+                        return;
+                    }
+
+                    if (result is not null && (string.IsNullOrWhiteSpace(result.Url) || string.IsNullOrWhiteSpace(result.YoutubeVideoId) || session.CurrentRadioHistory.ContainsKey(result.YoutubeVideoId)))
+                    {
+                        result = null;
+                    }
+
+                    if (result is null && x < maxRadioRetries - 1)
+                    {
+                        await Task.Delay(500);
+                    }
+                }
+
+                if (result is null)
+                {
+                    Console.WriteLine($"Unable to get a valid radio track on guild {serverId} after {maxRadioRetries} retries.");
+                    await player.DisconnectAsync();
+                    CleanupSession(serverId);
+                    return;
+                }
+
+                session.Queue.AddLast(result);
+                session.CurrentRadioHistory.Add(result.YoutubeVideoId, true);
+                await PlayNextTrack(player, serverId, session.CallerTextChannelId, false);
             }
-            else if (!perServerSession[serverId].HeavyOperationOngoing)
+            else if (!session.HeavyOperationOngoing)
             {
                 await player.DisconnectAsync();
                 CleanupSession(serverId);
@@ -647,6 +783,7 @@ namespace Gargabot.Commands
             if (perServerSession[serverId].RadioMode)
             {
                 perServerSession[serverId].CurrentRadioHistory!.Clear();
+                perServerSession[serverId].RadioSeedVideoId = null;
                 perServerSession[serverId].RadioMode = false;
 
                 await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.RADIO_MODE_DISABLED)));
@@ -671,11 +808,15 @@ namespace Gargabot.Commands
                 return;
             }
 
-            perServerSession[serverId].RadioMode = true;
-            perServerSession[serverId].CurrentRadioHistory = new Dictionary<string, bool>
+            perServerSession[serverId].RadioSeedVideoId = perServerSession[serverId].LastTrackPlayed!.YoutubeVideoId;
+            perServerSession[serverId].CurrentRadioHistory = new Dictionary<string, bool>();
+
+            if (!string.IsNullOrWhiteSpace(perServerSession[serverId].RadioSeedVideoId))
             {
-                { perServerSession[serverId].LastTrackPlayed!.YoutubeVideoId, true },
-            };
+                perServerSession[serverId].CurrentRadioHistory!.Add(perServerSession[serverId].RadioSeedVideoId!, true);
+            }
+
+            perServerSession[serverId].RadioMode = true;
 
             await channel.SendMessageAsync(CustomEmbedBuilder.CreateEmbed(messageManager.GetMessage(Message.RADIO_MODE_ENABLED)));
         }

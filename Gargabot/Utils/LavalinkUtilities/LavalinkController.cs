@@ -17,32 +17,30 @@ namespace Gargabot.Utils.LavalinkUtilities
             return await sutils.GetArtistIdAndTrackFromArtistName(name);
         }
 
-        public static async Task<NewLavalinkTrack> getNextRadioTrack(IAudioService audioService, string videoId, Dictionary<string, bool> history)
+        public static async Task<NewLavalinkTrack?> getNextRadioTrack(IAudioService audioService, string videoId, Dictionary<string, bool> history)
         {
             string url = await YoutubeMusicController.GetRecommendationFromVideoId(videoId, history);
-            YoutubeVideo ytVideo = await YoutubeController.getVideoInfo(url);
-            NewLavalinkTrack nlt = new NewLavalinkTrack();
+            if (string.IsNullOrWhiteSpace(url)) return null;
 
-            if (ytVideo is not null)
-            {
-                nlt = new NewLavalinkTrack(ytVideo.Title, ytVideo.Url, ytVideo.Thumbnail, ytVideo.Duration);
-                nlt.YoutubeVideoId = ytVideo.Id;
-            }
+            YoutubeVideo ytVideo = await YoutubeController.getVideoInfo(url);
+            if (ytVideo is null || string.IsNullOrWhiteSpace(ytVideo.Url) || string.IsNullOrWhiteSpace(ytVideo.Id)) return null;
+
+            NewLavalinkTrack nlt = new NewLavalinkTrack(ytVideo.Title, ytVideo.Url, ytVideo.Thumbnail, ytVideo.Duration);
+            nlt.YoutubeVideoId = ytVideo.Id;
 
             return nlt;
         }
 
-        public static async Task<NewLavalinkTrack> getNextArtistRadioTrack(IAudioService audioService, string videoId, string artistId, Dictionary<string, bool> history)
+        public static async Task<NewLavalinkTrack?> getNextArtistRadioTrack(IAudioService audioService, string videoId, string artistId, Dictionary<string, bool> history)
         {
             string url = await YoutubeMusicController.GetRecommendationFromVideoIdAndSpotifyArtistId(videoId, artistId, history);
-            YoutubeVideo ytVideo = await YoutubeController.getVideoInfo(url);
-            NewLavalinkTrack nlt = new NewLavalinkTrack();
+            if (string.IsNullOrWhiteSpace(url)) return null;
 
-            if (ytVideo is not null)
-            {
-                nlt = new NewLavalinkTrack(ytVideo.Title, ytVideo.Url, ytVideo.Thumbnail, ytVideo.Duration);
-                nlt.YoutubeVideoId = ytVideo.Id;
-            }
+            YoutubeVideo ytVideo = await YoutubeController.getVideoInfo(url);
+            if (ytVideo is null || string.IsNullOrWhiteSpace(ytVideo.Url) || string.IsNullOrWhiteSpace(ytVideo.Id)) return null;
+
+            NewLavalinkTrack nlt = new NewLavalinkTrack(ytVideo.Title, ytVideo.Url, ytVideo.Thumbnail, ytVideo.Duration);
+            nlt.YoutubeVideoId = ytVideo.Id;
 
             return nlt;
         }

@@ -156,10 +156,7 @@ namespace Gargabot.Utils.Youtube
         {
             try
             {
-                using var client = _http;
-                client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:108.0) Gecko/20100101 Firefox/108.0");
-
-                return await client.GetStringAsync($"https://music.youtube.com/search?q={Uri.EscapeDataString(search)}");
+                return await _http.GetStringAsync($"https://music.youtube.com/search?q={Uri.EscapeDataString(search)}");
             }
             catch
             {
@@ -176,15 +173,7 @@ namespace Gargabot.Utils.Youtube
             {
 
                 YoutubeClient yc = _youtube;
-                string playlistId = "RD";
-                if (history.Count>0)
-                {
-                    playlistId += history.First().Key;
-                }
-                else
-                {
-                    playlistId += videoId;
-                }
+                string playlistId = "RD" + videoId;
                 var videos = await yc.Playlists.GetVideosAsync(playlistId);
 
                 if (videos.Count > 0)
@@ -229,6 +218,7 @@ namespace Gargabot.Utils.Youtube
                                 }
                                 if (string.IsNullOrEmpty(recommendationUrl) || history.ContainsKey(getVideoIdFromUrl(recommendationUrl)))
                                 {
+                                    recommendationUrl = "";
                                     continue;
                                 }
 
@@ -239,15 +229,18 @@ namespace Gargabot.Utils.Youtube
                     }
                     if (string.IsNullOrEmpty(recommendationUrl))
                     {
-                        if (repetition) //avoid infinite loop
+                        if (repetition)
                         {
                             return "";
                         }
-                        return await GetRecommendationFromVideoId(history.Last().Key, history, true);
+                        return await GetRecommendationFromVideoId(videoId, history, true);
                     }
                 }
             }
-            catch { }
+            catch(Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
             return recommendationUrl;
 
         }
@@ -339,6 +332,8 @@ namespace Gargabot.Utils.Youtube
                                 {
                                     break;
                                 }
+
+                                recommendationUrl = "";
                             }
                         }
                     }
@@ -366,6 +361,7 @@ namespace Gargabot.Utils.Youtube
                             if (!string.IsNullOrEmpty(recommendationUrl) && !history.ContainsKey(getVideoIdFromUrl(recommendationUrl)))
                                 break;
 
+                            recommendationUrl = "";
                             index++;
                         }
                     }

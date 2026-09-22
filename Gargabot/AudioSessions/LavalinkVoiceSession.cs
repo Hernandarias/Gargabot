@@ -11,6 +11,7 @@ namespace Gargabot.AudioSessions
         private Dictionary<string, bool> ?currentRadioHistory;
         private bool artistRadioMode;
         private string ?artistRadioArtistId;
+        private string ?radioSeedVideoId;
 
         public LavalinkVoiceSession()
         {
@@ -32,6 +33,7 @@ namespace Gargabot.AudioSessions
         public Dictionary<string, bool> ?CurrentRadioHistory { get => currentRadioHistory; set => currentRadioHistory = value; }
         public bool ArtistRadioMode { get => artistRadioMode; set => artistRadioMode = value; }
         public string ?ArtistRadioArtistId { get => artistRadioArtistId; set => artistRadioArtistId = value; }
+        public string ?RadioSeedVideoId { get => radioSeedVideoId; set => radioSeedVideoId = value; }
         public bool IsStartingPlayback { get; set; }
 
         public CommandContext? RadioSelectionCommandContext { get; set; }
